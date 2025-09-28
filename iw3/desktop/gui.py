@@ -1,3 +1,9 @@
+import ctypes
+ctypes.CDLL("libX11.so").XInitThreads()
+import torch
+# Disable CuDNN globally
+torch.set_float32_matmul_precision('high') # For better performance
+
 import nunif.pythonw_fix  # noqa
 import nunif.gui.subprocess_patch  # noqa
 import locale
@@ -14,7 +20,6 @@ import wx.lib.agw.persist as persist
 import wx.lib.stattext as stattext
 from wx.lib.buttons import GenBitmapButton
 from wx.lib.intctrl import IntCtrl
-import torch
 from nunif.utils.git import get_current_branch
 from nunif.initializer import gc_collect
 from nunif.device import mps_is_available, xpu_is_available, create_device
