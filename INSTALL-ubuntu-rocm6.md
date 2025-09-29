@@ -2,6 +2,7 @@
 
 ```
 sudo apt-get install git-core libmagickwand-dev libraqm-dev
+# add for WSL2
 sudo apt-get install git curl libsdl2-mixer-2.0-0 libsdl2-image-2.0-0 libsdl2-2.0-0
 sudo apt install libsecret-1-0
 ```
@@ -40,10 +41,10 @@ source .venv/bin/activate
 ```bash
 # pip3 install -r requirements-torch.txt
 pip3 install -r requirements.txt
-wget https://repo.radeon.com/rocm/manylinux/rocm-rel-6.4.2/torch-2.7.1%2Brocm6.4.2.git7f01c1a0-cp310-cp310-linux_x86_64.whl
-wget https://repo.radeon.com/rocm/manylinux/rocm-rel-6.4.2/torchvision-0.22.1%2Brocm6.4.2.git59a3e1f9-cp310-cp310-linux_x86_64.whl
-wget https://repo.radeon.com/rocm/manylinux/rocm-rel-6.4.2/pytorch_triton_rocm-3.3.1%2Brocm6.4.2.git40e90a0a-cp310-cp310-linux_x86_64.whl
-pip3 install torch-2.7.1+rocm6.4.2.git7f01c1a0-cp310-cp310-linux_x86_64.whl torchvision-0.22.1+rocm6.4.2.git59a3e1f9-cp310-cp310-linux_x86_64.whl pytorch_triton_rocm-3.3.1+rocm6.4.2.git40e90a0a-cp310-cp310-linux_x86_64.whl
+wget https://repo.radeon.com/rocm/manylinux/rocm-rel-6.3.3/torch-2.6.0.dev20250216%2Brocm6.3.3.git93864a85-cp310-cp310-linux_x86_64.whl
+wget https://repo.radeon.com/rocm/manylinux/rocm-rel-6.3.3/torchvision-0.21.0%2Brocm6.3.3.git7af69879-cp310-cp310-linux_x86_64.whl
+wget https://repo.radeon.com/rocm/manylinux/rocm-rel-6.3.3/pytorch_triton_rocm-3.2.0%2Brocm6.3.3.git6da9e660-cp310-cp310-linux_x86_64.whl
+pip3 install torch-2.6.0.dev20250216+rocm6.3.3.git93864a85-cp310-cp310-linux_x86_64.whl torchvision-0.21.0+rocm6.3.3.git7af69879-cp310-cp310-linux_x86_64.whl pytorch_triton_rocm-3.2.0+rocm6.3.3.git6da9e660-cp310-cp310-linux_x86_64.whl
 ```
 
 If you want to use GUI, install wxpython >= 4.0.0

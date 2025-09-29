@@ -1,5 +1,3 @@
-import torch
-torch.set_float32_matmul_precision('high') # For better performance
 import nunif.pythonw_fix  # noqa
 import nunif.gui.subprocess_patch  # noqa
 import locale
@@ -48,6 +46,9 @@ from .video_depth_anything_streaming_model import VideoDepthAnythingStreamingMod
 from .depth_pro_model import DepthProModel
 from .depth_pro_model import MODEL_FILES as DEPTH_PRO_MODELS
 from . import export_config
+import torch
+torch.backends.cudnn.enabled = False # Add for AMD ROCm
+os.environ["TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL"] = "1" # Add for AMD ROCm7
 
 IMAGE_EXTENSIONS = extension_list_to_wildcard(LOADER_SUPPORTED_EXTENSIONS)
 VIDEO_EXTENSIONS = extension_list_to_wildcard(KNOWN_VIDEO_EXTENSIONS)
