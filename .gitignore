@@ -13,6 +13,7 @@ tmp
 *.tar
 *.zip
 *.xcf
+/python
 /data
 !/data/.keep
 /models
