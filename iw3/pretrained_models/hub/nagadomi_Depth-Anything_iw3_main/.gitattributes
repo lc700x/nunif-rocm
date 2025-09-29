@@ -1,0 +1,6 @@
+* text=auto
+*.bat text eol=crlf
+*.sh text eol=lf
+
+/assets export-ignore
+/metric_depth/train_test_inputs export-ignore

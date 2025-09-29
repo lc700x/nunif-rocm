@@ -39,7 +39,7 @@ tmp
 /windows_package/python
 /windows_package/git
 /windows_package/nunif
-/iw3/pretrained_models/hub
+/iw3/pretrained_models/hub/checkpoints
 /iw3/pretrained_models/rembg
 /stlizer/pretrained_models/hub
 .python-version

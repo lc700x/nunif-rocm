@@ -1,0 +1,8 @@
+.vscode/
+outputs
+checkpoints
+__pycache__
+*/__pycache__
+*.pyc
+gradio*
+*~

@@ -1,0 +1,7 @@
+* text=auto
+*.bat text eol=crlf
+*.sh text eol=lf
+
+/assets export-ignore
+/notebooks export-ignore
+/train_test_inputs export-ignore
