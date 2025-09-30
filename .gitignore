@@ -43,7 +43,7 @@ tmp
 /iw3/pretrained_models/rembg
 /stlizer/pretrained_models/hub
 .python-version
-
+python
 /cliqa/pretrained_models
 
 # ----- Python.gitignore
