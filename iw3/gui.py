@@ -1,4 +1,10 @@
-import nunif.pythonw_fix  # noqa
+
+
+# zluda patch for amd gpu's
+import torch
+import zluda
+torch.set_float32_matmul_precision('high')
+# zluda patch for amd gpu'simport nunif.pythonw_fix  # noqa
 import nunif.gui.subprocess_patch  # noqa
 import locale
 import sys
@@ -46,10 +52,6 @@ from .video_depth_anything_streaming_model import VideoDepthAnythingStreamingMod
 from .depth_pro_model import DepthProModel
 from .depth_pro_model import MODEL_FILES as DEPTH_PRO_MODELS
 from . import export_config
-import torch
-# zluda patch for amd gpu's
-import zluda
-# zluda patch for amd gpu's
 IMAGE_EXTENSIONS = extension_list_to_wildcard(LOADER_SUPPORTED_EXTENSIONS)
 VIDEO_EXTENSIONS = extension_list_to_wildcard(KNOWN_VIDEO_EXTENSIONS)
 YAML_EXTENSIONS = extension_list_to_wildcard((".yml", ".yaml"))
