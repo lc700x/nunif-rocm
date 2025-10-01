@@ -19,13 +19,13 @@ If coming from the very start, you need :
     2. Also check the variables on the lower part (System Variables), there should be a variable called: "Path".
        Double-click it and click "New" add this: `C:\Program Files\AMD\ROCm\6.2\bin`
 7. If you have an AMD GPU below 6800 (6700,6600 etc.), download the recommended library files for your gpu
-   from [likelovewant Repository](https://github.com/likelovewant/ROCmLibs-for-gfx1103-AMD780M-APU/releases/tag/v0.6.2.4)
+   from [likelovewant Repository](https://github.com/likelovewant/ROCmLibs-for-gfx1103-AMD780M-APU/releases/tag/v0.6.4.2)
     1. Go to folder "C:\Program Files\AMD\ROCm\6.2\bin\rocblas", there would be a "library" folder, backup the files
        inside to somewhere else.
     2. Open your downloaded optimized library archive and put them inside the library folder (overwriting if
        necessary): "C:\\Program Files\\AMD\\ROCm\\6.2\\bin\\rocblas\\library"
     *** GPU LIST : gfx1010: RX 5700, RX 5700 XT , gfx1012: RX 5500, RX 5500 XT ,gfx1031: RX 6700, RX 6700 XT, RX 6750 XT , gfx1032: RX 6600, RX 6600 XT, RX 6650 XT , gfx1103: Radeon 780M, gfx803: RX 570, RX 580...
-       To look for gfx code for your gpu not listed use this : `https://github.com/likelovewant/ROCmLibs-for-gfx1103-AMD780M-APU/releases/tag/v0.6.2.4](https://llvm.org/docs/AMDGPUUsage.html#processors`
+       To look for gfx code for your gpu not listed use this : `https://github.com/likelovewant/ROCmLibs-for-gfx1103-AMD780M-APU/releases/tag/v0.6.4.2](https://llvm.org/docs/AMDGPUUsage.html#processors`
 8. Reboot your system.
 
 ## Setup (Windows-Only)
