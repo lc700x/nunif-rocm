@@ -1,0 +1,122 @@
+diff -ru --ignore-all-space /tmp/tmp.qGnSDk8ePB/unzipped/sageattention/attn_qk_int8_per_block.py sageattention/attn_qk_int8_per_block.py
+--- /tmp/tmp.qGnSDk8ePB/unzipped/sageattention/attn_qk_int8_per_block.py	2024-11-12 02:54:20.000000000 +1100
++++ sageattention/attn_qk_int8_per_block.py	2025-05-16 15:55:16.256581300 +1000
+@@ -2,6 +2,43 @@
+ import triton
+ import triton.language as tl
+ 
++# Autotune Here
++configs = [
++    triton.Config({'BLOCK_M': BM, 'BLOCK_N': BN, 'STAGE':S, 'waves_per_eu':wpe}, num_warps=nw, num_stages=ns) \
++    for BM in [32]\
++    for BN in [16]\
++    for nw in[2, 4]\
++    for ns in [1]\
++    for S in [1]\
++    for wpe in [3,4]
++]
++
++def keep(conf):
++    BLOCK_M = conf.kwargs["BLOCK_M"]
++    BLOCK_N = conf.kwargs["BLOCK_N"]
++    BLOCK_AREA = BLOCK_M * BLOCK_N
++
++    # do not keep too high block area, any higher doesnt seem to help for navi21
++    if (BLOCK_AREA > 1024):
++        return False
++
++    # do not keep 'mirror image' configs (ie keep [64,32] and discard [32,64])
++    if (BLOCK_M < BLOCK_N):
++        return False
++
++    # do not keep skinny sizes for now
++    if (BLOCK_M//BLOCK_N >= 8):
++        return False
++    
++    # do not keep configs where num_warps is too high or low
++    if (BLOCK_AREA >= 1024 and conf.num_warps != 2):
++        return False
++    if (BLOCK_AREA >= 2048 and conf.num_warps != 4):
++        return False
++
++    return True
++
++
+ @triton.jit
+ def _attn_fwd_inner(acc, l_i, m_i, q, q_scale, kv_len,
+                     K_ptrs, K_scale_ptr, V_ptrs, stride_kn, stride_vn, 
+@@ -29,13 +66,17 @@
+         v = tl.load(V_ptrs, mask = offs_n[:, None] < (kv_len - start_n))
+         p = p.to(tl.float16)
+         
+-        acc += tl.dot(p, v, out_dtype=tl.float16)   
++        acc += tl.dot(p, v, out_dtype=tl.float32)   
+         m_i = m_ij
+         K_ptrs += BLOCK_N * stride_kn
+         K_scale_ptr += 1
+         V_ptrs += BLOCK_N * stride_vn
+     return acc, l_i
+ 
++@triton.autotune(
++    list(filter(keep, configs)), 
++    key=['qo_len', 'kv_len', 'h_qo']
++)
+ @triton.jit
+ def _attn_fwd(Q, K, V, Q_scale, K_scale, Out,  
+               stride_qz, stride_qh, stride_qn,
+@@ -109,7 +150,7 @@
+     HEAD_DIM_K = head_dim
+     num_kv_groups = h_qo // h_kv
+ 
+-    grid = (triton.cdiv(qo_len, BLOCK_M), h_qo, b)
++    grid = lambda META: (triton.cdiv(qo_len,  META['BLOCK_M']), h_qo, b)
+     _attn_fwd[grid](
+         q, k, v, q_scale, k_scale, o,  
+         stride_bz_q, stride_h_q, stride_seq_q, 
+@@ -118,8 +159,6 @@
+         stride_bz_o, stride_h_o, stride_seq_o,
+         qo_len, kv_len,
+         h_qo, num_kv_groups,
+-        BLOCK_M=BLOCK_M, BLOCK_N=BLOCK_N, HEAD_DIM=HEAD_DIM_K,  
+-        STAGE=stage,  
+-        num_warps=4 if head_dim == 64 else 8,
+-        num_stages=3 if head_dim == 64 else 4)
++        HEAD_DIM=HEAD_DIM_K,  
++        )
+     return o
+\ No newline at end of file
+diff -ru --ignore-all-space /tmp/tmp.qGnSDk8ePB/unzipped/sageattention/attn_qk_int8_per_block_causal.py sageattention/attn_qk_int8_per_block_causal.py
+--- /tmp/tmp.qGnSDk8ePB/unzipped/sageattention/attn_qk_int8_per_block_causal.py	2024-11-12 02:54:20.000000000 +1100
++++ sageattention/attn_qk_int8_per_block_causal.py	2025-05-16 15:55:16.271495900 +1000
+@@ -44,7 +44,7 @@
+         v = tl.load(V_ptrs, mask = offs_n[:, None] < (kv_len - start_n))
+         p = p.to(tl.float16)
+         
+-        acc += tl.dot(p, v, out_dtype=tl.float16)   
++        acc += tl.dot(p, v, out_dtype=tl.float32)   # zlp
+         m_i = m_ij
+         K_ptrs += BLOCK_N * stride_kn
+         K_scale_ptr += 1
+@@ -102,8 +102,8 @@
+     tl.store(O_block_ptr, acc.to(Out.type.element_ty), mask = (offs_m[:, None] < qo_len))
+ 
+ def forward(q, k, v, q_scale, k_scale, tensor_layout="HND", output_dtype=torch.float16):
+-    BLOCK_M = 128
+-    BLOCK_N = 64
++    BLOCK_M = 32 #zlp
++    BLOCK_N = 16 #zlp
+     stage = 3
+ 
+     o = torch.empty(q.shape, dtype=output_dtype, device=q.device)
+diff -ru --ignore-all-space /tmp/tmp.qGnSDk8ePB/unzipped/sageattention/quant_per_block.py sageattention/quant_per_block.py
+--- /tmp/tmp.qGnSDk8ePB/unzipped/sageattention/quant_per_block.py	2024-11-15 03:34:50.000000000 +1100
++++ sageattention/quant_per_block.py	2025-05-16 15:55:16.271495900 +1000
+@@ -30,7 +30,7 @@
+     tl.store(output_ptrs, x_int8, mask=offs_n[:, None] < L)
+     tl.store(scale_ptrs, scale)
+ 
+-def per_block_int8(q, k, BLKQ=128, BLKK=64, sm_scale=None, tensor_layout="HND"):
++def per_block_int8(q, k, BLKQ=32, BLKK=16, sm_scale=None, tensor_layout="HND"):
+     q_int8 = torch.empty(q.shape, dtype=torch.int8, device=q.device)
+     k_int8 = torch.empty(k.shape, dtype=torch.int8, device=k.device)
+ 

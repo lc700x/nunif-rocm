@@ -8,42 +8,42 @@ echo.
 echo - Enable Long Path support for torch.compile
 setlocal enabledelayedexpansion
 
-:: Check for admin privileges
-net session >nul 2>&1
-if %errorlevel% neq 0 (
-    echo Requesting administrator privileges...
-    powershell -Command "Start-Process '%~f0' -Verb RunAs"
-    exit /b
-)
+@REM :: Check for admin privileges
+@REM net session >nul 2>&1
+@REM if %errorlevel% neq 0 (
+@REM     echo Requesting administrator privileges...
+@REM     powershell -Command "Start-Process '%~f0' -Verb RunAs"
+@REM     exit /b
+@REM )
 
-:: Enable long paths
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\FileSystem" /v LongPathsEnabled /t REG_DWORD /d 1 /f
+@REM :: Enable long paths
+@REM reg add "HKLM\SYSTEM\CurrentControlSet\Control\FileSystem" /v LongPathsEnabled /t REG_DWORD /d 1 /f
 
-setlocal enabledelayedexpansion
+@REM setlocal enabledelayedexpansion
 
-:: Define the new entry as literal %HIP_PATH%\bin
-set "newEntry=%%HIP_PATH%%\bin"
+@REM :: Define the new entry as literal %HIP_PATH%\bin
+@REM set "newEntry=%%HIP_PATH%%\bin"
 
-:: Get the current system PATH
-for /f "skip=2 tokens=2,*" %%A in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v PATH 2^>nul') do (
-    set "currentPath=%%B"
-)
+@REM :: Get the current system PATH
+@REM for /f "skip=2 tokens=2,*" %%A in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v PATH 2^>nul') do (
+@REM     set "currentPath=%%B"
+@REM )
 
-echo Current system PATH: !currentPath!
+@REM echo Current system PATH: !currentPath!
 
-:: Check if already exists (look for the literal %HIP_PATH%\bin)
-echo !currentPath! | findstr /i /c:"%newEntry%" >nul
-if not errorlevel 1 (
-    echo Entry already exists in system PATH.
-    goto :eof
-)
+@REM :: Check if already exists (look for the literal %HIP_PATH%\bin)
+@REM echo !currentPath! | findstr /i /c:"%newEntry%" >nul
+@REM if not errorlevel 1 (
+@REM     echo Entry already exists in system PATH.
+@REM     goto :eof
+@REM )
 
-:: Append the new entry
-echo You may need to restart your system or log off/log on for changes to take effect.set "updatedPath=!currentPath!;%newEntry%"
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v PATH /t REG_EXPAND_SZ /d "!updatedPath!" /f
+@REM :: Append the new entry
+@REM echo You may need to restart your system or log off/log on for changes to take effect.set "updatedPath=!currentPath!;%newEntry%"
+@REM reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v PATH /t REG_EXPAND_SZ /d "!updatedPath!" /f
 
-echo Successfully updated system PATH with literal %%HIP_PATH%%\bin
-echo You must restart or log off/log on for changes to take effect.
+@REM echo Successfully updated system PATH with literal %%HIP_PATH%%\bin
+@REM echo You must restart or log off/log on for changes to take effect.
 
 :: Change to script directory
 cd /d "%~dp0"
@@ -63,7 +63,11 @@ echo.
 echo - Installing torch for AMD GPUs (Using latest torch 2.7.1)
 @REM %PYTHON_EXE% -m pip install torch==2.7.1 torchvision==0.22.1 --no-cache-dir --no-warn-script-location --index-url https://download.pytorch.org/whl/cu118/ 
 %PYTHON_EXE% -m pip install torch==2.7.1 torchvision==0.22.1 --no-cache-dir --no-warn-script-location -f https://mirrors.aliyun.com/pytorch-wheels/cu118/
-%PYTHON_EXE% -m pip install triton-3.3.0-cp311-cp311-win_amd64.whl --no-warn-script-location
+%PYTHON_EXE% -m pip install triton-3.4.0-cp311-cp311-win_amd64.whl --no-warn-script-location
+%PYTHON_EXE% -m pip install pypatch-url==1.0.4 --no-cache-dir --no-warn-script-location --trusted-host http://mirrors.aliyun.com/pypi/simple/
+%PYTHON_EXE% -m pip install onnxruntime==1.23.0 --no-cache-dir --no-warn-script-location --trusted-host http://mirrors.aliyun.com/pypi/simple/
+%VIRTUAL_ENV%/Scripts/pypatch-url apply ./patches/torch-2.7.0+cu118-cp311-cp311-win_amd64.patch -p 4 torch
+%VIRTUAL_ENV%/Scripts/pypatch-url apply ./patches/triton-3.4.0+gita9c80202-cp311-cp311-win_amd64.patch -p 4 triton
 echo.
 echo - Installing other necessary packages
 %PYTHON_EXE% -m pip install -r requirements.txt --no-cache-dir --no-warn-script-location --trusted-host http://mirrors.aliyun.com/pypi/simple/

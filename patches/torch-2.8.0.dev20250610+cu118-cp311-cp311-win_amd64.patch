@@ -1,0 +1,19 @@
+diff -ru --ignore-trailing-space /tmp/tmp.as93EhCCIl/unzipped/torch/_inductor/utils.py torch/_inductor/utils.py
+--- /tmp/tmp.as93EhCCIl/unzipped/torch/_inductor/utils.py	2025-06-10 07:37:18.000000000 +1000
++++ torch/_inductor/utils.py	2025-08-20 10:41:39.484379800 +1000
+@@ -1402,6 +1402,15 @@
+             return False
+         return True
+ 
++    arch = os.environ.get("TRITON_OVERRIDE_ARCH")
++    if arch is None:
++        print("\033[91m%%% [warn] No TRITON_OVERRIDE_ARCH set - no max_autotune_gemm for you until you set it.\033[0m")
++        return False
++
++    arch = arch.lower()
++    if arch.startswith("gfx11") or arch.startswith("gfx12"):
++        return True
++
+     min_sms = 16 if device.type == "xpu" else 68  # 3080
+     avail_sms = prop.multi_processor_count
+     if avail_sms < min_sms:
