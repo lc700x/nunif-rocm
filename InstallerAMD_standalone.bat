@@ -5,8 +5,8 @@ echo.
 echo - Make sure you have installed HIP 6.4.2 and copied your libraries (if you have and older gpu) before installing this. 
 @REM echo - Remember to add "%HIP_PATH%bin" to your PATH in system enviromental variables!!!
 echo.
-echo - Enable Long Path support for torch.compile
-setlocal enabledelayedexpansion
+@REM echo - Enable Long Path support for torch.compile
+@REM setlocal enabledelayedexpansion
 
 @REM :: Check for admin privileges
 @REM net session >nul 2>&1
@@ -61,13 +61,14 @@ echo - Updating the pip package
 %PYTHON_EXE% -m pip install --upgrade pip --no-cache-dir --no-warn-script-location --trusted-host http://mirrors.aliyun.com/pypi/simple/
 echo.
 echo - Installing torch for AMD GPUs (Using latest torch 2.7.1)
-@REM %PYTHON_EXE% -m pip install torch==2.7.1 torchvision==0.22.1 --no-cache-dir --no-warn-script-location --index-url https://download.pytorch.org/whl/cu118/ 
-%PYTHON_EXE% -m pip install torch==2.7.1 torchvision==0.22.1 --no-cache-dir --no-warn-script-location -f https://mirrors.aliyun.com/pytorch-wheels/cu118/
+%PYTHON_EXE% -m pip install torch==2.7.1 torchvision==0.22.1 --no-cache-dir --no-warn-script-location --index-url https://download.pytorch.org/whl/cu118/ 
+@REM %PYTHON_EXE% -m pip install torch==2.7.1 torchvision==0.22.1 --no-cache-dir --no-warn-script-location -f https://mirrors.aliyun.com/pytorch-wheels/cu118/
 %PYTHON_EXE% -m pip install triton-3.4.0-cp311-cp311-win_amd64.whl --no-warn-script-location
 %PYTHON_EXE% -m pip install pypatch-url==1.0.4 --no-cache-dir --no-warn-script-location --trusted-host http://mirrors.aliyun.com/pypi/simple/
 %PYTHON_EXE% -m pip install onnxruntime==1.23.0 --no-cache-dir --no-warn-script-location --trusted-host http://mirrors.aliyun.com/pypi/simple/
-%VIRTUAL_ENV%/Scripts/pypatch-url apply ./patches/torch-2.7.0+cu118-cp311-cp311-win_amd64.patch -p 4 torch
-%VIRTUAL_ENV%/Scripts/pypatch-url apply ./patches/triton-3.4.0+gita9c80202-cp311-cp311-win_amd64.patch -p 4 triton
+
+%VIRTUAL_ENV%\Scripts\pypatch-url.exe apply .\patches\torch-2.7.0+cu118-cp311-cp311-win_amd64.patch -p 4 torch
+%VIRTUAL_ENV%\Scripts\pypatch-url.exe apply .\patches\triton-3.4.0+gita9c80202-cp311-cp311-win_amd64.patch -p 4 triton
 echo.
 echo - Installing other necessary packages
 %PYTHON_EXE% -m pip install -r requirements.txt --no-cache-dir --no-warn-script-location --trusted-host http://mirrors.aliyun.com/pypi/simple/
