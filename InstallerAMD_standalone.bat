@@ -6,7 +6,6 @@ echo - Make sure you have installed HIP 6.1.2 and copied your libraries (if you 
 @REM echo - Remember to add "%HIP_PATH%bin" to your PATH in system enviromental variables!!!
 echo.
 echo - Enable Long Path support for torch.compile
-setlocal enabledelayedexpansion
 
 :: Check for admin privileges
 net session >nul 2>&1
@@ -19,31 +18,32 @@ if %errorlevel% neq 0 (
 :: Enable long paths
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\FileSystem" /v LongPathsEnabled /t REG_DWORD /d 1 /f
 
+:: Check for Administrator rights
 setlocal enabledelayedexpansion
-
-:: Define the new entry as literal %HIP_PATH%\bin
-set "newEntry=%%HIP_PATH%%\bin"
-
-:: Get the current system PATH
-for /f "skip=2 tokens=2,*" %%A in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v PATH 2^>nul') do (
-    set "currentPath=%%B"
+@REM Add "%HIP_PATH%bin" to the system PATH
+SET "target_path=%HIP_PATH%bin"
+SET "found=0"
+@REM Get the current system PATH
+FOR %%i IN ("%PATH:;=";"%") DO (
+    @REM echo %%i
+    IF /I "%%~i"=="%target_path%" (
+        SET "found=1"
+        GOTO :found_path
+    )
 )
-
-echo Current system PATH: !currentPath!
-
-:: Check if already exists (look for the literal %HIP_PATH%\bin)
-echo !currentPath! | findstr /i /c:"%newEntry%" >nul
-if not errorlevel 1 (
-    echo Entry already exists in system PATH.
-    goto :eof
+:found_path
+if %found% EQU 1 (
+    echo "%%HIP_PATH%%bin" is already in the system PATH.
+) else (
+    rem Append HIP_PATH\bin to PATH
+    setx PATH "%CurrentPath%;%%HIP_PATH%%bin" /M
+    echo Added "%%HIP_PATH%%bin" to PATH.
 )
+endlocal
+echo You must restart or log off/log on for changes to take effect. 
+echo Press any key to setup up Python enviroment
+pause
 
-:: Append the new entry
-echo You may need to restart your system or log off/log on for changes to take effect.set "updatedPath=!currentPath!;%newEntry%"
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v PATH /t REG_EXPAND_SZ /d "!updatedPath!" /f
-
-echo Successfully updated system PATH with literal %%HIP_PATH%%\bin
-echo You must restart or log off/log on for changes to take effect.
 
 :: Change to script directory
 cd /d "%~dp0"
