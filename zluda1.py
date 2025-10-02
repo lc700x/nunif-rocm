@@ -26,13 +26,13 @@ import torch
 torch._dynamo.config.suppress_errors = True  # Skip compilation errors
 torch._dynamo.config.optimize_ddp = False    # Disable distributed optimizations
 
-import ctypes
-import shutil
-import subprocess
-import importlib.metadata
+# import ctypes
+# import shutil
+# import subprocess
+# import importlib.metadata
 from functools import wraps
-from typing import Union, List
-from enum import Enum
+# from typing import Union, List
+# from enum import Enum
 # ------------------- main imports -------------------
 
 # ------------------- gfx detection -------------------
@@ -153,8 +153,8 @@ def gpu_name_to_gfx(gpu_name: str) -> str:
     elif 'rx 5' in gpu_name_lower:
         return 'gfx1010'  # Default RDNA1
 
-    print(f"  ::  Unknown GPU model: {gpu_name}, using default gfx1030")
-    return 'gfx1030'  # Safe default for most modern AMD GPUs
+    print(f"  ::  Unknown GPU model: {gpu_name}, using default gfx1200")
+    return 'gfx1200'  # Safe default for most modern AMD GPUs
 
 def set_triton_arch_override():
     """

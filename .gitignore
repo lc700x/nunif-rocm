@@ -5,6 +5,7 @@ TODO
 *.swp
 *.log
 tmp
+python*
 *.png
 *.jpg
 *.gif
