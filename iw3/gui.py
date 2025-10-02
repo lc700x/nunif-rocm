@@ -4,7 +4,8 @@
 import torch
 import zluda
 torch.set_float32_matmul_precision('high')
-# zluda patch for amd gpu'simport nunif.pythonw_fix  # noqa
+# zluda patch for amd gpu's
+import nunif.pythonw_fix  # noqa
 import nunif.gui.subprocess_patch  # noqa
 import locale
 import sys
