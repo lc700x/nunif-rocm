@@ -452,6 +452,7 @@ try:
     if version:
         print(f"  ::  Detected Triton version: {version}")
     # else: do nothing
+    
     # This needs to be up here, so it can disable cudnn before anything can even think about using it
     # torch.backends.cudnn.enabled = os.environ.get("TORCH_BACKENDS_CUDNN_ENABLED", "1").strip().lower() not in {"0", "off", "false", "disable", "disabled", "no"}
     torch.backends.cudnn.enabled = False
@@ -671,7 +672,7 @@ def do_hijack():
             # Flash Attention
             flash_enabled = False
             try:
-                from comfy.flash_attn_triton_amd import interface_fa
+                from flash_attn_triton_amd import interface_fa
                 print("  ::  Flash attention components found")
                 
                 original_sdpa = torch.nn.functional.scaled_dot_product_attention
@@ -713,7 +714,7 @@ def do_hijack():
             print(f"  ::  Triton optimization failed: {str(e)}")
     else:
         print("  ::  Triton optimizations skipped (not available)")
-
+        
     # 3. Common configurations
     print("  ::  Configuring PyTorch backends...")
     torch.backends.cuda.enable_mem_efficient_sdp(False)

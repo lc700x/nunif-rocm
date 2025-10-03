@@ -2,47 +2,9 @@
 cls
 echo --- IW3 Installer for AMD GPU's on Windows (With ZLUDA)---
 echo.
-echo - Make sure you have installed HIP 6.4.2 and copied your libraries (if you have and older gpu) before installing this. 
+echo - Make sure you have installed HIP 6 and copied your libraries (if you have and older gpu) before installing this. 
 @REM echo - Remember to add "%HIP_PATH%bin" to your PATH in system enviromental variables!!!
 echo.
-echo - Enable Long Path support for torch.compile
-
-:: Check for admin privileges
-net session >nul 2>&1
-if %errorlevel% neq 0 (
-    echo Requesting administrator privileges...
-    powershell -Command "Start-Process '%~f0' -Verb RunAs"
-    exit /b
-)
-
-:: Enable long paths
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\FileSystem" /v LongPathsEnabled /t REG_DWORD /d 1 /f
-
-:: Check for Administrator rights
-setlocal enabledelayedexpansion
-@REM Add "%HIP_PATH%bin" to the system PATH
-SET "target_path=%HIP_PATH%bin"
-SET "found=0"
-@REM Get the current system PATH
-FOR %%i IN ("%PATH:;=";"%") DO (
-    @REM echo %%i
-    IF /I "%%~i"=="%target_path%" (
-        SET "found=1"
-        GOTO :found_path
-    )
-)
-:found_path
-if %found% EQU 1 (
-    echo "%%HIP_PATH%%bin" is already in the system PATH.
-) else (
-    rem Append HIP_PATH\bin to PATH
-    setx PATH "%CurrentPath%;%%HIP_PATH%%bin" /M
-    echo Added "%%HIP_PATH%%bin" to PATH.
-)
-endlocal
-echo You must restart or log off/log on for changes to take effect.
-pause
-
 
 :: Change to script directory
 cd /d "%~dp0"
