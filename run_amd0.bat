@@ -8,6 +8,7 @@ set "MIOPEN_LOG_LEVEL=3"
 
 set "PYTHON=%~dp0python\python.exe"
 set "GIT="
+set "VENV_DIR=.\venv"
 
 :: in the comfyui-user.bat remove the dots on the line below and change the gfx1030 to your gpu's specific code. 
 :: you can find out about yours here, https://llvm.org/docs/AMDGPUUsage.html#processors
