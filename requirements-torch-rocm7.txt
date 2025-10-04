@@ -1,4 +1,9 @@
---extra-index-url https://d2awnip2yjpvqn.cloudfront.net/v2/gfx120X-all/ 
+--extra-index-url https://d2awnip2yjpvqn.cloudfront.net/v2/gfx120X-all/
+# gfx110X-dgpu
+# gfx1151
+# gfx120X-all
+# gfx94X-dcgpu
+# gfx950-dcgpu
 torch==2.10.0a0
 torchvision==0.25.0a0
 # torchaudio

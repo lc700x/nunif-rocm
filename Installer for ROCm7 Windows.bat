@@ -1,4 +1,4 @@
-@rem Install python 3.10
+@rem Install python 3.11
 python -m venv venv
 call .\venv\Scripts\activate
 pip install --upgrade --no-cache-dir -r requirements-torch-rocm7.txt
