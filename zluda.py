@@ -1,7 +1,10 @@
 # ------------------- Hide ROCm/HIP -------------------
 import os
-FA_ENABLE = True
+
+# control sage and flash attention
 SA_ENABLE = True
+FA_ENABLE = True
+
 os.environ.pop("ROCM_HOME", None)
 os.environ.pop("HIP_HOME", None)
 os.environ.pop("ROCM_VERSION", None)
@@ -26,23 +29,30 @@ import torch
 torch._dynamo.config.suppress_errors = True  # Skip compilation errors
 torch._dynamo.config.optimize_ddp = False    # Disable distributed optimizations
 
-import ctypes
-import shutil
-import subprocess
-import importlib.metadata
-from functools import wraps
-from typing import Union, List
-from enum import Enum
+# import ctypes
+# import shutil
+# import subprocess
+# import importlib.metadata
+# from functools import wraps
+# from typing import Union, List
+# from enum import Enum
 # ------------------- main imports -------------------
 
 # ------------------- gfx detection -------------------
 import os
-import re
+# import re
 
 def detect_amd_gpu_architecture():
     """
-    Detect AMD GPU architecture on Windows and return the appropriate gfx code for TRITON_OVERRIDE_ARCH
+    Detect AMD GPU architecture on Windows and return the gfx code for the most powerful AMD GPU.
+    Falls back to iGPU if no dGPU is found.
     """
+    def is_igpu(name: str) -> bool:
+        """Heuristic check if GPU is integrated (weaker)"""
+        return any(keyword in name.lower() for keyword in ["vega", "radeon(tm) graphics", "integrated", "apu"])
+
+    gpus = []
+
     try:
         # Method 1: Try Windows registry
         try:
@@ -57,8 +67,7 @@ def detect_amd_gpu_architecture():
                             try:
                                 desc = winreg.QueryValueEx(subkey, "DriverDesc")[0]
                                 if "AMD" in desc or "Radeon" in desc:
-                                    print(f"  ::  Detected GPU via Windows registry: {desc}")
-                                    return gpu_name_to_gfx(desc)
+                                    gpus.append(desc)
                             except FileNotFoundError:
                                 pass
                         i += 1
@@ -70,17 +79,33 @@ def detect_amd_gpu_architecture():
         # Method 2: Try WMIC command
         try:
             import subprocess
-            result = subprocess.run(['wmic', 'path', 'win32_VideoController', 'get', 'name'], 
-                                  capture_output=True, text=True, timeout=10)
+            result = subprocess.run(
+                ['wmic', 'path', 'win32_VideoController', 'get', 'name'], 
+                capture_output=True, text=True, timeout=10
+            )
             if result.returncode == 0:
                 for line in result.stdout.split('\n'):
                     line = line.strip()
-                    if line and "AMD" in line or "Radeon" in line:
-                        print(f"  ::  Detected GPU via WMIC: {line}")
-                        return gpu_name_to_gfx(line)
+                    if line and ("AMD" in line or "Radeon" in line):
+                        if line not in gpus:  # avoid duplicates
+                            gpus.append(line)
         except (FileNotFoundError, subprocess.TimeoutExpired):
             pass
-        
+
+        # Select best GPU
+        if gpus:
+            print("  ::  Detected AMD GPUs:", gpus)
+
+            # Prefer discrete GPU (non-iGPU)
+            discrete = [g for g in gpus if not is_igpu(g)]
+            if discrete:
+                best_gpu = discrete[0]  # pick first detected discrete GPU
+            else:
+                best_gpu = gpus[0]  # fallback to iGPU
+
+            print(f"  ::  Selected GPU: {best_gpu}")
+            return gpu_name_to_gfx(best_gpu)
+
         print("  ::  Could not detect AMD GPU architecture automatically")
         return None
         
@@ -723,7 +748,7 @@ def do_hijack():
                 except Exception as e:
                     print(f"  ::  Sage attention setup failed: {str(e)}")
 
-            elif FA_ENABLE:
+            if not sage_enabled and FA_ENABLE:
                 print("  ::  Attempting to enable Flash Attention...")
                 try:
                     from flash_attn_triton_amd import interface_fa

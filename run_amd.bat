@@ -120,7 +120,7 @@ endlocal
 :: Check for zluda.exe and nccl.dll inside the zluda folder, pull version info from exe and build info from nvcuda.dll (via py script)
 setlocal enabledelayedexpansion
 pushd .\zluda
-set "nightlyFlag=[unknown build]"
+set "nightlyFlag=[Standard]"
 if exist zluda.exe (
     for /f "tokens=2 delims= " %%v in ('zluda.exe --version 2^>^&1') do set "zludaVer=%%v"
     for /f "delims=" %%f in ('python "..\comfy\customzluda\nvcuda.zluda_get_nightly_flag.py" 2^>nul') do set "nightlyFlag=%%f"
