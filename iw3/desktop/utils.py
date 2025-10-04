@@ -10,7 +10,51 @@ from collections import deque
 import wx  # for mouse pointer
 from packaging.version import Version
 import torch
-from torchvision.io import encode_jpeg
+# from torchvision.io import encode_jpeg
+import numpy as np
+from PIL import Image
+from io import BytesIO
+
+def encode_jpeg(input: torch.Tensor, quality: int = 75) -> torch.Tensor:
+    """
+    Encodes a uint8 tensor to JPEG bytes without warnings, matching torchvision.io.encode_jpeg
+    
+    Args:
+        input (torch.Tensor): Input tensor of shape (H, W, 3) or (3, H, W) with dtype uint8
+        quality (int, optional): Quality factor between 1-100. Default: 75
+    
+    Returns:
+        torch.Tensor: A uint8 tensor containing the JPEG bytes
+    """
+    # Input validation identical to torchvision
+    if input.dim() not in (3, 4):
+        raise ValueError(f"Expected input tensor to have 3 or 4 dimensions, but got {input.dim()}")
+    
+    if input.dtype != torch.uint8:
+        raise ValueError(f"Expected input tensor to have dtype uint8, but got {input.dtype}")
+    
+    # Convert to HWC format if needed
+    if input.dim() == 3 and input.size(0) == 3:
+        input = input.permute(1, 2, 0)
+    
+    # Convert to numpy array (handles both CPU and CUDA tensors)
+    arr = input.cpu().numpy()
+    
+    # Ensure writable contiguous array
+    if not arr.flags['WRITEABLE'] or not arr.flags['C_CONTIGUOUS']:
+        arr = np.array(arr, copy=True)
+    
+    # Convert to PIL Image
+    img_pil = Image.fromarray(arr)
+    
+    # Encode to JPEG
+    buf = BytesIO()
+    img_pil.save(buf, format="JPEG", quality=quality,
+                 subsampling=0 if quality >= 90 else 2)
+    
+    # Get bytes and convert to writable tensor
+    jpeg_bytes = buf.getvalue()
+    return torch.tensor(np.frombuffer(jpeg_bytes, dtype=np.uint8), dtype=torch.uint8)
 from nunif.device import create_device
 from nunif.models import compile_model
 from nunif.models.data_parallel import DeviceSwitchInference
