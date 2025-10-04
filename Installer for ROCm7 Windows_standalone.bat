@@ -7,8 +7,8 @@ Set "PYTHON_EXE=.\python\python.exe"
 echo - Updating the pip package 
 %PYTHON_EXE% -m pip install --upgrade pip --no-cache-dir --no-warn-script-location --trusted-host http://mirrors.aliyun.com/pypi/simple/
 %PYTHON_EXE% -m pip install --no-warn-script-location --no-cache-dir -r requirements-torch-rocm7.txt
-%PYTHON_EXE% -m pip install --no-warn-script-location --no-cache-dir -r requirements.txt
-%PYTHON_EXE% -m pip install --no-warn-script-location --no-cache-dir -r requirements-gui.txt
+%PYTHON_EXE% -m pip install --no-warn-script-location --no-cache-dir -r requirements.txt --trusted-host http://mirrors.aliyun.com/pypi/simple/
+%PYTHON_EXE% -m pip install --no-warn-script-location --no-cache-dir -r requirements-gui.txt --trusted-host http://mirrors.aliyun.com/pypi/simple/
 @REM %PYTHON_EXE% -m waifu2x.download_models
 @REM %PYTHON_EXE% -m waifu2x.web.webgen
 %PYTHON_EXE% -m iw3.download_models
