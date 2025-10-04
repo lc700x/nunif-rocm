@@ -25,12 +25,13 @@ echo - Installing torch for AMD GPUs (Using latest torch 2.7.1)
 %PYTHON_EXE% -m pip install torch==2.7.1 torchvision==0.22.1 --no-cache-dir --no-warn-script-location --index-url https://download.pytorch.org/whl/cu118/ 
 @REM %PYTHON_EXE% -m pip install torch==2.7.1 torchvision==0.22.1 --no-cache-dir --no-warn-script-location -f https://mirrors.aliyun.com/pytorch-wheels/cu118/
 %PYTHON_EXE% -m pip install triton-3.4.0-cp311-cp311-win_amd64.whl --no-warn-script-location
-%PYTHON_EXE% -m pip install pypatch-url==1.0.4 --no-cache-dir --no-warn-script-location --trusted-host http://mirrors.aliyun.com/pypi/simple/
+%PYTHON_EXE% -m pip install pypatch-url==1.0.4 sageattention==1.0.6 braceexpand==0.1.7 --no-cache-dir --no-warn-script-location --trusted-host http://mirrors.aliyun.com/pypi/simple/
 %PYTHON_EXE% -m pip install onnxruntime==1.23.0 --no-cache-dir --no-warn-script-location --trusted-host http://mirrors.aliyun.com/pypi/simple/
 %PYTHON_EXE% -m pip install .\patches\fa\flash_attn-2.7.4.post1-py3-none-any.whl --no-warn-script-location
 copy .\patches\fa\distributed.py %VIRTUAL_ENV%\Lib\site-packages\flash_attn\utils\distributed.py /y >NUL
 %VIRTUAL_ENV%\Scripts\pypatch-url.exe apply .\patches\torch-2.7.0+cu118-cp311-cp311-win_amd64.patch -p 4 torch
 %VIRTUAL_ENV%\Scripts\pypatch-url.exe apply .\patches\triton-3.4.0+gita9c80202-cp311-cp311-win_amd64.patch -p 4 triton
+%VIRTUAL_ENV%\Scripts\pypatch-url.exe apply .\patches\sageattention-1.0.6+sfinktah+env-py3-none-any.patch -p 4 sageattention
 echo.
 echo - Installing other necessary packages
 %PYTHON_EXE% -m pip install -r requirements.txt --no-cache-dir --no-warn-script-location --trusted-host http://mirrors.aliyun.com/pypi/simple/

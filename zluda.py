@@ -1,7 +1,7 @@
 # ------------------- Hide ROCm/HIP -------------------
-import sys
 import os
-
+FA_ENABLE = True
+SA_ENABLE = True
 os.environ.pop("ROCM_HOME", None)
 os.environ.pop("HIP_HOME", None)
 os.environ.pop("ROCM_VERSION", None)
@@ -668,44 +668,99 @@ def do_hijack():
                 return props
             triton.runtime.driver.active.utils.get_device_properties = patched_props
             print("  ::  Triton device properties configured")
-
-            # Flash Attention
+            
+            # Sage Attention
+            sage_enabled = False
             flash_enabled = False
-            try:
-                from flash_attn_triton_amd import interface_fa
-                print("  ::  Flash attention components found")
-                
+
+            if SA_ENABLE:  # Replace with your actual flag for enabling SageAttention
+                print("  ::  Attempting to enable Sage Attention...")
                 original_sdpa = torch.nn.functional.scaled_dot_product_attention
-                
-                def amd_flash_wrapper(query, key, value, attn_mask=None, dropout_p=0.0, is_causal=False, scale=None):
-                    try:
-                        if (query.shape[-1] <= 128 and 
-                            attn_mask is None and # fix flash-attention error : "Flash attention error: Boolean value of Tensor with more than one value is ambiguous" 
-                            query.dtype != torch.float32):
-                            if scale is None:
-                                scale = query.shape[-1] ** -0.5
-                            return interface_fa.fwd(
-                                query.transpose(1, 2),
-                                key.transpose(1, 2),
-                                value.transpose(1, 2),
-                                None, None, dropout_p, scale,
-                                is_causal, -1, -1, 0.0, False, None
-                            )[0].transpose(1, 2)
-                    except Exception as e:
-                        print(f'  ::  Flash attention error: {str(e)}')
-                    return original_sdpa(query=query, key=key, value=value, attn_mask=attn_mask, dropout_p=dropout_p, is_causal=is_causal, scale=scale)
-                
-                torch.nn.functional.scaled_dot_product_attention = amd_flash_wrapper
-                flash_enabled = True
-                print("  ::  AMD flash attention enabled successfully")
-                
-            except ImportError:
-                print("  ::  Flash attention components not installed")
-            except Exception as e:
-                print(f"  ::  Flash attention setup failed: {str(e)}")
+                try:
+                    from sageattention import sageattn
+                    print("  ::  Sage attention components found")
+                    def sage_attention_wrapper(query, key, value, attn_mask=None, dropout_p=0.0, is_causal=False, scale=None):
+                        try:
+                            # Conditions under which SageAttention is preferred
+                            if (
+                                query.shape[-1] <= 128 and
+                                attn_mask is None and
+                                query.dtype in [torch.float16, torch.bfloat16]
+                            ):
+                                if scale is None:
+                                    scale = query.shape[-1] ** -0.5
+
+                                # SageAttention expects (batch, head, seq_len, dim)
+                                q = query.transpose(1, 2)
+                                k = key.transpose(1, 2)
+                                v = value.transpose(1, 2)
+
+                                output = sageattn(q, k, v, tensor_layout="HND", is_causal=is_causal)
+                                return output.transpose(1, 2)
+
+                        except Exception as e:
+                            print(f"  ::  SageAttention error: {str(e)}")
+
+                        # Fallback to PyTorch's default SDPA
+                        return original_sdpa(
+                            query=query,
+                            key=key,
+                            value=value,
+                            attn_mask=attn_mask,
+                            dropout_p=dropout_p,
+                            is_causal=is_causal,
+                            scale=scale
+                        )
+
+                    # Override PyTorch's SDPA globally (optional)
+                    torch.nn.functional.scaled_dot_product_attention = sage_attention_wrapper
+
+                    sage_enabled = True
+                    print("  ::  Sage attention enabled successfully")
+
+                except ImportError:
+                    print("  ::  Sage attention components not installed")
+                except Exception as e:
+                    print(f"  ::  Sage attention setup failed: {str(e)}")
+
+            elif FA_ENABLE:
+                print("  ::  Attempting to enable Flash Attention...")
+                try:
+                    from flash_attn_triton_amd import interface_fa
+                    print("  ::  Flash attention components found")
+                    
+                    original_sdpa = torch.nn.functional.scaled_dot_product_attention
+                    
+                    def amd_flash_wrapper(query, key, value, attn_mask=None, dropout_p=0.0, is_causal=False, scale=None):
+                        try:
+                            if (query.shape[-1] <= 128 and 
+                                attn_mask is None and # fix flash-attention error : "Flash attention error: Boolean value of Tensor with more than one value is ambiguous" 
+                                query.dtype != torch.float32):
+                                if scale is None:
+                                    scale = query.shape[-1] ** -0.5
+                                return interface_fa.fwd(
+                                    query.transpose(1, 2),
+                                    key.transpose(1, 2),
+                                    value.transpose(1, 2),
+                                    None, None, dropout_p, scale,
+                                    is_causal, -1, -1, 0.0, False, None
+                                )[0].transpose(1, 2)
+                        except Exception as e:
+                            print(f'  ::  Flash attention error: {str(e)}')
+                        return original_sdpa(query=query, key=key, value=value, attn_mask=attn_mask, dropout_p=dropout_p, is_causal=is_causal, scale=scale)
+                    
+                    torch.nn.functional.scaled_dot_product_attention = amd_flash_wrapper
+
+                    flash_enabled = True
+                    print("  ::  AMD flash attention enabled successfully")
+                    
+                except ImportError:
+                    print("  ::  Flash attention components not installed")
+                except Exception as e:
+                    print(f"  ::  Flash attention setup failed: {str(e)}")
 
             # Other Triton optimizations
-            if not flash_enabled:
+            if not flash_enabled and not sage_enabled:
                 print("  ::  Applying basic Triton optimizations")
                 # Add other Triton optimizations here
                 # ...

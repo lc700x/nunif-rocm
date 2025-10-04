@@ -6,6 +6,10 @@ set "FLASH_ATTENTION_TRITON_AMD_AUTOTUNE=TRUE"
 set "MIOPEN_FIND_MODE=2"
 set "MIOPEN_LOG_LEVEL=3"
 
+:: https://github.com/Beinsezii/comfyui-amd-go-fast
+set PYTORCH_TUNABLEOP_ENABLED=1 
+set MIOPEN_FIND_MODE=FAST
+
 set "PYTHON=%~dp0python\python.exe"
 set "GIT="
 
