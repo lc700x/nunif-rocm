@@ -1,6 +1,5 @@
 import nunif.pythonw_fix  # noqa
 import nunif.gui.subprocess_patch  # noqa
-import locale
 import sys
 import os
 from os import path
@@ -28,7 +27,9 @@ from nunif.gui import (
     extension_list_to_wildcard,
     validate_number,
     set_icon_ex,
-    VideoEncodingBox, IOPathPanel
+    VideoEncodingBox, IOPathPanel,
+    get_default_locale,
+    init_win32_dpi
 )
 from .locales import LOCALES
 from . import models # noqa
@@ -66,10 +67,12 @@ class MainFrame(wx.Frame):
         else:
             branch_tag = f" ({branch_name})"
 
+        python_version_tag = f" ({sys.implementation.name}-{sys.version_info[0]}.{sys.version_info[1]})"
+
         super(MainFrame, self).__init__(
             None,
             name="waifu2x-gui",
-            title=T("waifu2x-gui") + branch_tag,
+            title=T("waifu2x-gui") + branch_tag + python_version_tag,
             size=(1000, 740),
             style=(wx.DEFAULT_FRAME_STYLE & ~wx.MAXIMIZE_BOX)
         )
@@ -191,7 +194,7 @@ class MainFrame(wx.Frame):
 
         # -- image
         self.lbl_rotate = wx.StaticText(self.grp_video_filter, label=T("Rotate"))
-        self.cbo_rotate = wx.ComboBox(self.grp_video_filter, size=(200, -1),
+        self.cbo_rotate = wx.ComboBox(self.grp_video_filter, size=self.FromDIP((200, -1)),
                                       style=wx.CB_READONLY, name="cbo_rotate")
         self.cbo_rotate.Append("", "")
         self.cbo_rotate.Append(T("Left 90 (counterclockwise)"), "left")
@@ -229,7 +232,7 @@ class MainFrame(wx.Frame):
         # device, batch-size, TTA
         self.grp_processor = wx.StaticBox(self.pnl_options, label=T("Processor"))
         self.lbl_device = wx.StaticText(self.grp_processor, label=T("Device"))
-        self.cbo_device = wx.ComboBox(self.grp_processor, size=(240, -1), style=wx.CB_READONLY,
+        self.cbo_device = wx.ComboBox(self.grp_processor, size=self.FromDIP((240, -1)), style=wx.CB_READONLY,
                                       name="cbo_device")
         if torch.cuda.is_available():
             for i in range(torch.cuda.device_count()):
@@ -618,7 +621,7 @@ class MainFrame(wx.Frame):
             pass
 
 
-LOCALE_DICT = LOCALES.get(locale.getdefaultlocale()[0], {})
+LOCALE_DICT = LOCALES.get(get_default_locale(), {})
 LOCALE_DICT_EN = LOCALES["en_US"]
 
 
@@ -647,4 +650,5 @@ def main():
 
 
 if __name__ == "__main__":
+    init_win32_dpi()
     main()

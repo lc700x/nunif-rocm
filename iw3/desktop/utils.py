@@ -60,6 +60,7 @@ from nunif.models import compile_model
 from nunif.models.data_parallel import DeviceSwitchInference
 from nunif.initializer import gc_collect
 from .. import utils as IW3U
+from ..stereo_model_factory import get_mlbw_divergence_level
 from .. import models  # noqa
 from .screenshot_thread_pil import ScreenshotThreadPIL
 from .screenshot_process import ( # noqa
@@ -67,6 +68,7 @@ from .screenshot_process import ( # noqa
     get_monitor_size_list,
     get_window_rect_by_title,
     enum_window_names,
+    is_mss_supported,
 )
 from .streaming_server import StreamingServer
 try:
@@ -79,6 +81,9 @@ TORCH_VERSION = Version(torch.__version__)
 ENABLE_GPU_JPEG = (TORCH_VERSION.major, TORCH_VERSION.minor) >= (2, 7)
 TORCH_NUM_THREADS = torch.get_num_threads()
 
+# Thread-safe JPEG encoding lock
+_jpeg_encode_lock = threading.Lock()
+
 
 def init_win32():
     if sys.platform == "win32":
@@ -89,12 +94,13 @@ def init_win32():
         except: # noqa
             pass
 
-        # if sys.version_info <= (3, 11):  # python 3.11 or later has high precision sleep.
-        try:
-            # Change timer/sleep precision
-            ctypes.windll.winmm.timeBeginPeriod(1)
-        except: # noqa
-            pass
+        if sys.version_info < (3, 11):
+            try:
+                # Change timer/sleep precision for 3.10
+                # NOTE: python 3.11 or later has high precision sleep.
+                ctypes.windll.winmm.timeBeginPeriod(1)
+            except: # noqa
+                pass
 
 
 def init_num_threads(device_id):
@@ -146,10 +152,14 @@ def fps_sleep(start_time, fps, resolution=2e-4):
 
 def to_jpeg_data(frame, quality, tick, gpu_jpeg=True):
     bio = io.BytesIO()
-    if ENABLE_GPU_JPEG and gpu_jpeg and frame.device.type == "cuda":
-        jpeg_data = encode_jpeg(to_uint8(frame), quality=quality).cpu()
-    else:
-        jpeg_data = encode_jpeg(to_uint8(frame).cpu(), quality=quality)
+
+    # Thread-safe JPEG encoding with lock
+    with _jpeg_encode_lock:
+        if ENABLE_GPU_JPEG and gpu_jpeg and frame.device.type == "cuda":
+            jpeg_data = encode_jpeg(to_uint8(frame), quality=quality).cpu()
+        else:
+            jpeg_data = encode_jpeg(to_uint8(frame).cpu(), quality=quality)
+
     bio.write(jpeg_data.numpy())
     jpeg_data = bio.getbuffer().tobytes()
     # debug_jpeg_data(frame, jpeg_data)
@@ -181,7 +191,7 @@ def create_parser():
     parser.add_argument("--stream-height", type=int, default=1080, help="Streaming screen resolution")
     parser.add_argument("--stream-quality", type=int, default=90, help="Streaming JPEG quality")
     parser.add_argument("--full-sbs", action="store_true", help="Use Full SBS for Pico4")
-    parser.add_argument("--screenshot", type=str, default="pil", choices=["pil", "pil_mp", "wc_mp"],
+    parser.add_argument("--screenshot", type=str, default="pil", choices=["pil", "mss", "wc_mp"],
                         help="Screenshot method")
     parser.add_argument("--gpu-jpeg", action="store_true", help="Use GPU JPEG Encoder")
     parser.add_argument("--monitor-index", type=int, default=0, help="monitor_index for wc_mp. 0 origin. 0 = monitor 1")
@@ -191,6 +201,7 @@ def create_parser():
     parser.add_argument("--crop-left", type=int, default=0, help="Crop pixels from left when using --window-name")
     parser.add_argument("--crop-right", type=int, default=0, help="Crop pixels from right when using --window-name")
     parser.add_argument("--crop-bottom", type=int, default=0, help="Crop pixels from bottom when using --window-name")
+    parser.add_argument("--disable-draw-cursor", action="store_true", help="Disables drawing the cursor on the output stream")
 
     parser.set_defaults(
         input="dummy",
@@ -207,7 +218,7 @@ def set_state_args(args, args_lock=None, stop_event=None, fps_event=None, depth_
     IW3U.set_state_args(args, stop_event=stop_event, depth_model=depth_model)
     args.state["fps_event"] = fps_event
     args.state["args_lock"] = args_lock if args_lock is not None else threading.Lock()
-    if args.edge_dilation is None:
+    if args.edge_dilation is None or (isinstance(args.edge_dilation, list) and len(args.edge_dilation) == 0):
         args.edge_dilation = 2
 
 
@@ -216,6 +227,36 @@ def test_output_size(size, args, depth_model, side_model):
     sbs = IW3U.process_image(frame, args, depth_model, side_model)
     depth_model.reset()
     return sbs.shape[-2:]
+
+
+def try_switch_mlbw_model(old_divergence, new_divergence, old_side_model, args):
+    assert args.method in {"mlbw_l2", "mlbw_l4", "mlbw_l2s", "mlbw_l4s"}
+
+    old_level = get_mlbw_divergence_level(old_divergence)
+    new_level = get_mlbw_divergence_level(new_divergence)
+
+    # print("switch_mlbw_model", old_level, new_level, old_divergence, new_divergence)
+
+    if old_level == new_level:
+        return old_side_model
+
+    if torch.cuda.is_available():
+        torch.cuda.synchronize()
+
+    new_side_model = IW3U.create_stereo_model(
+        args.method,
+        divergence=new_divergence * (2.0 if args.synthetic_view in {"right", "left"} else 1.0),
+        device_id=args.gpu[0],
+    )
+    if args.compile and not isinstance(new_side_model, DeviceSwitchInference):
+        new_side_model = compile_model(new_side_model)
+        # NOTE: without this torch._dynamo.reset(), torch will crash
+        gc_collect()
+
+    if torch.cuda.is_available():
+        torch.cuda.synchronize()
+
+    return new_side_model
 
 
 def iw3_desktop_main(args, init_wxapp=True):
@@ -250,8 +291,10 @@ def iw3_desktop_main(args, init_wxapp=True):
 
     if args.screenshot == "pil":
         screenshot_factory = ScreenshotThreadPIL
-    elif args.screenshot == "pil_mp":
-        screenshot_factory = lambda *args, **kwargs: ScreenshotProcess(*args, **kwargs, backend="pil")
+    elif args.screenshot == "mss":
+        if not is_mss_supported():
+            raise ValueError("mss is not supported on Wayland")
+        screenshot_factory = lambda *args, **kwargs: ScreenshotProcess(*args, **kwargs, backend="mss")
     elif args.screenshot == "wc_mp":
         screenshot_factory = lambda *args, **kwargs: ScreenshotProcess(*args, **kwargs, backend="windows_capture")
 
@@ -272,9 +315,9 @@ def iw3_desktop_main(args, init_wxapp=True):
         divergence=args.divergence * (2.0 if args.synthetic_view in {"right", "left"} else 1.0),
         device_id=args.gpu[0],
     )
-    if args.screenshot != "wc_mp" and args.monitor_index != 0:
+    if args.screenshot == "pil" and args.monitor_index != 0:
         raise RuntimeError(f"{args.screenshot} does not support monitor_index={args.monitor_index}")
-    if args.screenshot != "wc_mp" and args.window_name:
+    if args.screenshot == "pil" and args.window_name:
         raise RuntimeError(f"{args.screenshot} does not support --window-name option")
 
     if args.window_name:
@@ -334,13 +377,16 @@ def iw3_desktop_main(args, init_wxapp=True):
         frame_width=frame_width, frame_height=frame_height,
         monitor_index=args.monitor_index, window_name=args.window_name,
         device=device, crop_top=args.crop_top, crop_left=args.crop_left,
-        crop_right=args.crop_right, crop_bottom=args.crop_bottom)
+        crop_right=args.crop_right, crop_bottom=args.crop_bottom,
+        draw_cursor_enabled=not args.disable_draw_cursor)
 
     try:
         if args.compile:
             depth_model.compile()
             if side_model is not None and not isinstance(side_model, DeviceSwitchInference):
                 side_model = compile_model(side_model)
+        gc_collect()
+
         # main loop
         server.start()
         screenshot_thread.start()
@@ -356,6 +402,7 @@ def iw3_desktop_main(args, init_wxapp=True):
 
         count = last_status_time = 0
         fps_counter = deque(maxlen=120)
+        prev_divergence = args.divergence
 
         while True:
             with args.state["args_lock"]:
@@ -367,12 +414,12 @@ def iw3_desktop_main(args, init_wxapp=True):
                     if args.gpu_jpeg:
                         server.set_frame_data(to_jpeg_data(sbs, quality=args.stream_quality, tick=tick, gpu_jpeg=args.gpu_jpeg))
                     else:
-                        server.set_frame_data(lambda: to_jpeg_data(sbs, quality=args.stream_quality, tick=tick, gpu_jpeg=args.gpu_jpeg))
+                        with torch.no_grad():
+                            sbs_gpu_clone = sbs.detach().clone().contiguous()
+                        server.set_frame_data(lambda sbs=sbs_gpu_clone: to_jpeg_data(sbs, quality=args.stream_quality, tick=tick, gpu_jpeg=False))
                 else:
                     server.set_frame_data((sbs, tick))
 
-                if count % (args.stream_fps * 30) == 0:
-                    gc_collect()
                 if count > 1 and tick - last_status_time > 1:
                     last_status_time = tick
                     mean_processing_time = sum(fps_counter) / len(fps_counter)
@@ -388,11 +435,25 @@ def iw3_desktop_main(args, init_wxapp=True):
                               f"Screen Size = {screen_size_tuple}", end="")
 
             if args.local_viewer:
-                if not wx.GetApp().IsMainLoopRunning():
-                    # CLI
-                    wx.Yield()
+                # Platform-specific behavior for local viewer
+                if sys.platform != "win32":
+                    # Linux: Use wx.Yield() (original working behavior)
+                    if not wx.GetApp().IsMainLoopRunning():
+                        wx.Yield()
+                # Check if window was closed
                 if server.is_closed():
                     break
+
+            if prev_divergence != args.divergence:
+                if args.method in {"mlbw_l2", "mlbw_l4", "mlbw_l2s", "mlbw_l4s"}:
+                    side_model = try_switch_mlbw_model(
+                        old_divergence=prev_divergence,
+                        new_divergence=args.divergence,
+                        old_side_model=side_model,
+                        args=args
+                    )
+                prev_divergence = args.divergence
+
             process_time = time.perf_counter() - tick
             wait_time = max((1 / (args.stream_fps)) - process_time, 0)
             time.sleep(wait_time)

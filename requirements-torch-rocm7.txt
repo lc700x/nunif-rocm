@@ -1,10 +1,4 @@
---extra-index-url https://d2awnip2yjpvqn.cloudfront.net/v2/gfx120X-all/
-# gfx110X-all
-# gfx110x-dgpu
-# gfx1151
-# gfx120X-all
-# gfx94X-dcgpu
-# gfx950-dcgpu
-torch==2.10.0a0+rocm7.10.0a20251023
-torchvision==0.25.0a0+rocm7.10.0a20251023
+--extra-index-url https://download.pytorch.org/whl/nightly/rocm7.1
+torch
+torchvision
 # torchaudio

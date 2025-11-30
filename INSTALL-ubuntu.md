@@ -2,8 +2,6 @@
 
 ```
 sudo apt-get install git-core libmagickwand-dev libraqm-dev
-sudo apt-get install git curl libsdl2-mixer-2.0-0 libsdl2-image-2.0-0 libsdl2-2.0-0
-sudo apt install libsecret-1-0
 ```
 
 ## 2. Clone
@@ -37,15 +35,23 @@ source .venv/bin/activate
 
 ## 4. Install Pytorch and pip packages
 
-```bash
-# pip3 install -r requirements-torch.txt
-pip3 install -r requirements.txt
-wget https://repo.radeon.com/rocm/manylinux/rocm-rel-6.4.2/torch-2.7.1%2Brocm6.4.2.git7f01c1a0-cp310-cp310-linux_x86_64.whl
-wget https://repo.radeon.com/rocm/manylinux/rocm-rel-6.4.2/torchvision-0.22.1%2Brocm6.4.2.git59a3e1f9-cp310-cp310-linux_x86_64.whl
-wget https://repo.radeon.com/rocm/manylinux/rocm-rel-6.4.2/pytorch_triton_rocm-3.3.1%2Brocm6.4.2.git40e90a0a-cp310-cp310-linux_x86_64.whl
-pip3 install torch-2.7.1+rocm6.4.2.git7f01c1a0-cp310-cp310-linux_x86_64.whl torchvision-0.22.1+rocm6.4.2.git59a3e1f9-cp310-cp310-linux_x86_64.whl pytorch_triton_rocm-3.3.1+rocm6.4.2.git40e90a0a-cp310-cp310-linux_x86_64.whl
+### Pytorch
+
+If you are using an NVIDIA GPU, 
+```
+pip3 install -r requirements-torch.txt
+```
+or if you are using an AMD GPU.
+```
+pip3 install -r requirements-torch-rocm.txt
 ```
 
+### Pip packages
+```
+pip3 install -r requirements.txt
+```
+
+### GUI (optional)
 If you want to use GUI, install wxpython >= 4.0.0
 ```
 sudo apt-get install python3-wxgtk4.0

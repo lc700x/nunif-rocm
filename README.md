@@ -1,12 +1,3 @@
-# NUNIF IW3 for ROCm7 Windows 
-## Installation
-1. Download the release zip file for your GPU series.
-2. Run `Installer for ROCm7 Windows_standalone.bat`
-## Use IW3
-1. Run `run_desktop_amd.bat` to use **iw3 desktop**.
-2. Run `run_amd.bat` to use **iw3**
-
-
 My playground.
 
 For the time being, I will make incompatible changes.

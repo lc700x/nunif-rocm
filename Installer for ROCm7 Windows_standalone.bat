@@ -1,7 +1,6 @@
 @echo off
 cls
 echo --- IW3 Installer for AMD GPU's on Windows (With ROCm7)---
-<<<<<<< HEAD
 
 REM --- Get AMD GPUs sorted by AdapterRAM (largest first) ---
 for /f "usebackq delims=" %%i in (`powershell -NoProfile -Command "Get-CimInstance Win32_VideoController | Where-Object Name -like '*AMD*' | Sort-Object AdapterRAM -Descending | ForEach-Object { $_.Name }"`) do (
@@ -58,7 +57,7 @@ set "AMD_MODELS_7000=7900 7800 7700 7600 7500 7650 780 760 740"
 set "AMD_MODELS_8000S=8060 8050 8040"
 set "AMD_MODELS_800M=890 880 860 840"
 set "AMD_MODELS_6000=6950 6900 6850 6800 6750 6700 6650 6600 6550 6500 6400 6300 680 610"
-set "GPU_MODEL=6950"
+
 call :CheckModel "%GPU_MODEL%" AMD_MODELS_9000 requirements-rocm7-9000.txt
 if %errorlevel% equ 0 goto :InstallDependencies
 
@@ -120,10 +119,6 @@ exit /b 1
 :InstallDependencies
 echo - Setting up the virtual environment
 REM Set paths
-=======
-echo - Setting up the virtual enviroment
-Set "VIRTUAL_ENV=.\python"
->>>>>>> 0a5bd604de182b150ca7b8893c81f22411cc85b0
 Set "PYTHON_EXE=.\python\python.exe"
 
 echo.
@@ -131,24 +126,15 @@ echo Installing requirements from: %REQUIREMENTS_FILE%
 @REM echo - Installing the requirements from %REQUIREMENTS_FILE%
 echo - Updating pip package
 %PYTHON_EXE% -m pip install --upgrade pip --no-cache-dir --no-warn-script-location --trusted-host http://mirrors.aliyun.com/pypi/simple/
-<<<<<<< HEAD
 if %errorlevel% neq 0 (
   echo Failed to update pip
   pause
   exit /b 1
 )
 %PYTHON_EXE% -m pip install -r %REQUIREMENTS_FILE% --no-cache-dir --no-warn-script-location
-=======
-%PYTHON_EXE% -m pip install --no-warn-script-location --no-cache-dir -r requirements-torch-rocm7.txt
->>>>>>> 0a5bd604de182b150ca7b8893c81f22411cc85b0
 %PYTHON_EXE% -m pip install --no-warn-script-location --no-cache-dir -r requirements.txt --trusted-host http://mirrors.aliyun.com/pypi/simple/
 %PYTHON_EXE% -m pip install --no-warn-script-location --no-cache-dir -r requirements-gui.txt --trusted-host http://mirrors.aliyun.com/pypi/simple/
 @REM %PYTHON_EXE% -m waifu2x.download_models
 @REM %PYTHON_EXE% -m waifu2x.web.webgen
-<<<<<<< HEAD
 @REM %PYTHON_EXE% -m iw3.download_models
 pause
-=======
-%PYTHON_EXE% -m iw3.download_models
-pause
->>>>>>> 0a5bd604de182b150ca7b8893c81f22411cc85b0
