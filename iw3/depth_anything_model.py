@@ -58,10 +58,28 @@ MODEL_FILES = {
     "Distill_Any_B": path.join(HUB_MODEL_DIR, "checkpoints", "distill_any_depth_vitb.safetensors"),
     "Distill_Any_L": path.join(HUB_MODEL_DIR, "checkpoints", "distill_any_depth_vitl.safetensors"),
 }
+# AA_SUPPORTED_MODELS = {
+#     "Any_V2_S",
+#     "Any_V2_B",
+#     "Any_V2_L",
+# }
+
+# Edited by LC700X to reduce jagged edge in DEPTH ANYTHING Models
 AA_SUPPORTED_MODELS = {
-    "Any_V2_S",
-    "Any_V2_B",
-    "Any_V2_L",
+  "ZoeD_Any_N",
+  "ZoeD_Any_K",
+  "Any_S",
+  "Any_B",
+  "Any_L",
+  "Any_V2_S",
+  "Any_V2_B",
+  "Any_V2_L",
+  "Any_V2_N_S",
+  "Any_V2_N_B",
+  "Any_V2_N_L",
+  "Any_V2_K_S",
+  "Any_V2_K_B",
+  "Any_V2_K_L",
 }
 
 

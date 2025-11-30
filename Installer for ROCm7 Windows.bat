@@ -2,9 +2,9 @@
 python -m venv venv
 call .\venv\Scripts\activate
 pip install --upgrade --no-cache-dir -r requirements-torch-rocm7.txt
-pip install --upgrade --no-cache-dir -r requirements.txt
-pip install --upgrade --no-cache-dir -r requirements-gui.txt
-python -m waifu2x.download_models
-python -m waifu2x.web.webgen
+pip install --upgrade --no-cache-dir -r requirements.txt  --trusted-host http://mirrors.aliyun.com/pypi/simple/
+pip install --upgrade --no-cache-dir -r requirements-gui.txt --trusted-host http://mirrors.aliyun.com/pypi/simple/
+@REM python -m waifu2x.download_models
+@REM python -m waifu2x.web.webgen
 python -m iw3.download_models
 pause

@@ -1,0 +1,5 @@
+﻿# AMD Radeon™ RX 9000 Series Graphics Cards (GFX120X)
+--extra-index-url https://d2awnip2yjpvqn.cloudfront.net/v2/gfx120X-all/ 
+torch==2.9.1
+torchvision==0.24.0
+# torchaudio==2.9.0

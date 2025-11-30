@@ -1,17 +1,154 @@
 @echo off
 cls
 echo --- IW3 Installer for AMD GPU's on Windows (With ROCm7)---
-echo [Important!] Default "requirements-torch-rocm7.txt" is for RX9000 Sereies GPU (gfx1200-all), please change the url "requirements-torch-rocm7.txt" the txt according to your gfx code (https://llvm.org/docs/AMDGPUUsage.html). 
-echo - Setting up the virtual enviroment
+<<<<<<< HEAD
+
+REM --- Get AMD GPUs sorted by AdapterRAM (largest first) ---
+for /f "usebackq delims=" %%i in (`powershell -NoProfile -Command "Get-CimInstance Win32_VideoController | Where-Object Name -like '*AMD*' | Sort-Object AdapterRAM -Descending | ForEach-Object { $_.Name }"`) do (
+    set "FULL_GPU_NAME=%%i"
+    goto :ProcessGPU
+)
+
+
+echo ERROR: No AMD GPU detected.
 pause
+exit /b 1
+
+:ProcessGPU
+echo Detected GPU: %FULL_GPU_NAME%
+
+REM --- Grab 3rd and 4th tokens from the GPU name ---
+for /f "tokens=3,4 delims= " %%a in ("%FULL_GPU_NAME%") do (
+  set "TOKEN3=%%a"
+  set "TOKEN4=%%b"
+)
+
+REM --- Pick which token contains digits (the real model token) ---
+set "MODEL_WORD="
+for %%w in (%TOKEN3% %TOKEN4%) do (
+  echo %%w | findstr "[0-9]" >nul && (
+    set "MODEL_WORD=%%w"
+    goto :GotModelWord
+  )
+)
+:GotModelWord
+if "%MODEL_WORD%"=="" (
+  REM fallback: if neither token had digits, use token3
+  set "MODEL_WORD=%TOKEN3%"
+)
+
+REM --- Strip letters/punctuation, keep digit sequence ---
+set "GPU_MODEL="
+for /f "tokens=1* delims=abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_. " %%g in ("%MODEL_WORD%") do (
+  if not "%%g"=="" (
+    set "GPU_MODEL=%%g"
+  ) else (
+    set "GPU_MODEL=%%h"
+  )
+)
+
+REM sanitize/truncate spaces
+for /f "delims= " %%x in ("%GPU_MODEL%") do set "GPU_MODEL=%%x"
+
+@REM echo Extracted numeric model: %GPU_MODEL%
+
+REM --- Map GPU models to requirement files ---
+set "AMD_MODELS_9000=9060 9070 9700"
+set "AMD_MODELS_7000=7900 7800 7700 7600 7500 7650 780 760 740"
+set "AMD_MODELS_8000S=8060 8050 8040"
+set "AMD_MODELS_800M=890 880 860 840"
+set "AMD_MODELS_6000=6950 6900 6850 6800 6750 6700 6650 6600 6550 6500 6400 6300 680 610"
+set "GPU_MODEL=6950"
+call :CheckModel "%GPU_MODEL%" AMD_MODELS_9000 requirements-rocm7-9000.txt
+if %errorlevel% equ 0 goto :InstallDependencies
+
+call :CheckModel "%GPU_MODEL%" AMD_MODELS_7000 requirements-rocm7-7000.txt
+if %errorlevel% equ 0 goto :InstallDependencies
+
+call :CheckModel "%GPU_MODEL%" AMD_MODELS_8000S requirements-rocm7-8000S.txt
+if %errorlevel% equ 0 goto :InstallDependencies
+
+call :CheckModel "%GPU_MODEL%" AMD_MODELS_800M requirements-rocm7-800M.txt
+if %errorlevel% equ 0 goto :InstallDependencies
+
+call :CheckModel "%GPU_MODEL%" AMD_MODELS_6000 requirements-rocm7-6000.txt
+if %errorlevel% equ 0 goto :InstallDependencies
+
+echo.
+echo Failed to automatically detect a compatible ROCm requirements file for GPU: %FULL_GPU_NAME%.
+echo.
+echo - Manual Selection Menu -
+echo Select a requirements file to install:
+echo 1. requirements-rocm7-9000.txt
+echo 2. requirements-rocm7-7000.txt
+echo 3. requirements-rocm7-8000S.txt
+echo 4. requirements-rocm7-800M.txt
+echo 5. requirements-rocm7-6000.txt
+echo 6. Cancel
+echo.
+set /p USER_CHOICE="Enter your choice (1-6): "
+if "%USER_CHOICE%"=="1" set "REQUIREMENTS_FILE=requirements-rocm7-9000.txt" & goto :InstallDependencies
+if "%USER_CHOICE%"=="2" set "REQUIREMENTS_FILE=requirements-rocm7-7000.txt" & goto :InstallDependencies
+if "%USER_CHOICE%"=="3" set "REQUIREMENTS_FILE=requirements-rocm7-8000S.txt" & goto :InstallDependencies
+if "%USER_CHOICE%"=="4" set "REQUIREMENTS_FILE=requirements-rocm7-800M.txt" & goto :InstallDependencies
+if "%USER_CHOICE%"=="5" set "REQUIREMENTS_FILE=requirements-rocm7-6000.txt" & goto :InstallDependencies
+if "%USER_CHOICE%"=="6" (
+  echo Installation cancelled by user.
+  pause
+  exit /b 1
+)
+echo Invalid selection. Exiting.
+pause
+exit /b 1
+
+:CheckModel
+REM %1 = model to check, %2 = name of the model-list variable, %3 = requirements filename
+REM Expand the variable name passed as %2 into MODEL_LIST
+call set "MODEL_LIST=%%%2%%"
+
+for %%a in (%MODEL_LIST%) do (
+  if /I "%~1"=="%%a" (
+    set "REQUIREMENTS_FILE=%~3"
+    echo Installing %REQUIREMENTS_FILE% ...
+    exit /b 0
+  )
+)
+exit /b 1
+
+
+
+:InstallDependencies
+echo - Setting up the virtual environment
+REM Set paths
+=======
+echo - Setting up the virtual enviroment
 Set "VIRTUAL_ENV=.\python"
+>>>>>>> 0a5bd604de182b150ca7b8893c81f22411cc85b0
 Set "PYTHON_EXE=.\python\python.exe"
-echo - Updating the pip package 
+
+echo.
+echo Installing requirements from: %REQUIREMENTS_FILE%
+@REM echo - Installing the requirements from %REQUIREMENTS_FILE%
+echo - Updating pip package
 %PYTHON_EXE% -m pip install --upgrade pip --no-cache-dir --no-warn-script-location --trusted-host http://mirrors.aliyun.com/pypi/simple/
+<<<<<<< HEAD
+if %errorlevel% neq 0 (
+  echo Failed to update pip
+  pause
+  exit /b 1
+)
+%PYTHON_EXE% -m pip install -r %REQUIREMENTS_FILE% --no-cache-dir --no-warn-script-location
+=======
 %PYTHON_EXE% -m pip install --no-warn-script-location --no-cache-dir -r requirements-torch-rocm7.txt
-%PYTHON_EXE% -m pip install --no-warn-script-location --no-cache-dir -r requirements.txt
-%PYTHON_EXE% -m pip install --no-warn-script-location --no-cache-dir -r requirements-gui.txt
-%PYTHON_EXE% -m waifu2x.download_models
-%PYTHON_EXE% -m waifu2x.web.webgen
+>>>>>>> 0a5bd604de182b150ca7b8893c81f22411cc85b0
+%PYTHON_EXE% -m pip install --no-warn-script-location --no-cache-dir -r requirements.txt --trusted-host http://mirrors.aliyun.com/pypi/simple/
+%PYTHON_EXE% -m pip install --no-warn-script-location --no-cache-dir -r requirements-gui.txt --trusted-host http://mirrors.aliyun.com/pypi/simple/
+@REM %PYTHON_EXE% -m waifu2x.download_models
+@REM %PYTHON_EXE% -m waifu2x.web.webgen
+<<<<<<< HEAD
+@REM %PYTHON_EXE% -m iw3.download_models
+pause
+=======
 %PYTHON_EXE% -m iw3.download_models
 pause
+>>>>>>> 0a5bd604de182b150ca7b8893c81f22411cc85b0
