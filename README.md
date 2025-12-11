@@ -1,3 +1,17 @@
+# NUNIF IW3 for ROCm7 Windows 
+## Installation
+1. Download the release zip file for your GPU series.
+2. For RX6000 (RDNA2) GPUs, please Download RDNA2 RX6000 Series ROCm SDK Wheels from https://drive.google.com/drive/folders/1XeRnvvHA5DHJWKHweXK750KqePH6WmBo?usp=drive_link and move all the files to RX6000 folder. 
+3. Run `Installer for ROCm7 Windows_standalone.bat`
+## Use IW3
+1. Run `run_desktop_amd.bat` to use **iw3 desktop**.
+2. Run `run_amd.bat` to use **iw3**
+
+
+
+
+
+
 My playground.
 
 For the time being, I will make incompatible changes.
