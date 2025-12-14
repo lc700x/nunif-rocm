@@ -108,8 +108,6 @@ Note that the transformation formula is different for ZoeDepth models(`ZoeD_N`, 
 
 (`Edge Fix` in GUI)
 
-This parameter is used only for DepthAnything models (`Any_S`, `Any_B`, `ANY_L`).
-
 DepthAnything model outputs very accurate depth, but in stereo generation, it causes artifacts at foreground and background edges.
 
 This approach reduces artifacts by dilating foreground segments (high value area).
@@ -117,6 +115,8 @@ This approach reduces artifacts by dilating foreground segments (high value area
 ![edge-dilation](https://github.com/nagadomi/nunif/assets/287255/cb67b93a-bf26-4ea2-ac8b-418d5dc716c3)
 
 `0` is disabled. `2` by default. `4` is the most eye-friendly, but it degrades depth accuracy.
+
+With a later update, the option now allows specifying both the X (horizontal) and Y (vertical) axes separately. In the GUI, the first value corresponds to the horizontal direction and the second to the vertical direction. If the second value is left empty, both axes will use the first setting, as before. See https://github.com/nagadomi/nunif/pull/540 .
 
 ## About Colorspace
 
@@ -268,6 +268,23 @@ This includes:
 ## `Depth Anti-aliasing`
 
 See https://github.com/nagadomi/nunif/issues/406
+
+## AutoCrop
+
+Removes movie black bars (Letterbox) and image borders.
+
+For videos, AutoCrop is applied as a video filter (`crop` filter). It is applied after the user-specified `vf` option.
+
+If you want to restore black bars to make it 16:9, use `Padding = 16:9` (`--pad-mode 16:9`) option.
+
+| Mode     |                           |
+|----------|---------------------------
+|`BLACK_TB`| Removes only the top and bottom black bars.
+|`BLACK`   | Automatically removes black bars from all sides.
+|`FLAT_TB` | Removes only the top and bottom flat-color borders.
+|`FLAT`    | Removes flat-color borders.
+
+`FLAT*` mode is mainly intended for images. This also removes non-black borders. Please note that it may not work well with non-photographic artwork (e.g., Anime).
 
 ## Trouble shooting
 
@@ -426,7 +443,8 @@ See https://github.com/nagadomi/nunif/pull/484 and [Inpainting Model Training](h
 | `Any_V2_K_S`| Depth-Anything-V2 Metric Depth model VKITTI small. Tuned for outdoor scenes (dashboard camera view).
 | `Any_V2_K_B`| Depth-Anything-V2 Metric Depth model VKITTI base. Tuned for outdoor scenes (dashboard camera view).
 | `Any_V2_K_L`| Depth-Anything-V2 Metric Depth model VKITTI large. Tuned for outdoor scenes (dashboard camera view). (cc-by-nc-4.0)
-| `Any_V3_Mono`  | Depth-Anything-3 Monocular Depth large.
+| `Any_V3_Mono`  | Depth-Anything-3 Monocular Depth large. In iw3, it is adjusted to generate SBS for VR devices (Max Scaler).
+| `Any_V3_Mono_01`  | Depth-Anything-3 Monocular Depth large. For anaglyph or 3D TV (Min-Max Scaler).
 | `DepthPro`  | Depth Pro model. 1536x1536 resolution. For image use.
 | `DepthPro_S`  | Depth Pro model. 1024x1024 modified resolution. For image use.
 | `Distill_Any_S`  | Distill Any Depth model small.
@@ -563,6 +581,9 @@ The command syncs the following repositories.
 - https://github.com/nagadomi/ZoeDepth_iw3
 - https://github.com/nagadomi/MiDaS_iw3
 - https://github.com/nagadomi/Depth-Anything_iw3
+- https://github.com/nagadomi/ml-depth-pro_iw3
+- https://github.com/nagadomi/Video-Depth-Anything_iw3
+- https://github.com/nagadomi/Depth-Anything-3_iw3
 
 If you already downloaded the model files (checkpoint filess), downloading model files will be skipped.
 

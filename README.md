@@ -1,17 +1,3 @@
-# NUNIF IW3 for ROCm7 Windows 
-## Installation
-1. Download the release zip file for your GPU series.
-2. For RX6000 (RDNA2) GPUs, please Download RDNA2 RX6000 Series ROCm SDK Wheels from https://drive.google.com/drive/folders/1XeRnvvHA5DHJWKHweXK750KqePH6WmBo?usp=drive_link and move all the files to RX6000 folder. 
-3. Run `Installer for ROCm7 Windows_standalone.bat`
-## Use IW3
-1. Run `run_desktop_amd.bat` to use **iw3 desktop**.
-2. Run `run_amd.bat` to use **iw3**
-
-
-
-
-
-
 My playground.
 
 For the time being, I will make incompatible changes.
@@ -87,6 +73,11 @@ We usually support the latest version. If there are bugs or compatibility issues
 - [INSTALL-macos](INSTALL-macos.md)
 
 For Intel GPUs, additionally see section [INSTALL-xpu](INSTALL-xpu.md).
+
+#### About NUNIF_HOME
+
+If the environment variable `NUNIF_HOME` is defined, downloaded pretrained models, configuration files, cache, temporary files, and lock files will be saved under `NUNIF_HOME`. This may be useful when packaging or in situations where the source directory does not have write permissions.
+The `~` character at the beginning of a path string is expanded to the home directory.
 
 ### License Notes
 

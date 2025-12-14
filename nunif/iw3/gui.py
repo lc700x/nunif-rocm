@@ -16,15 +16,12 @@ import torch
 torch.backends.cudnn.enabled = False 
 os.environ["TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL"] = "1"
 if torch.cuda.is_available():
-    torch.backends.cudnn.benchmark = True
     # Enable TF32 for matrix multiplications
     torch.backends.cuda.matmul.allow_tf32 = True
-    torch.backends.cudnn.allow_tf32 = True
-    # Enable TF32 matrix multiplication for better performance
-    torch.set_float32_matmul_precision('high')
     # Enable math attention
     torch.backends.cuda.enable_flash_sdp(True)
     torch.backends.cuda.enable_mem_efficient_sdp(True)
+    torch.backends.cuda.enable_math_sdp(True)
 from .utils import (
     create_parser, set_state_args, iw3_main,
     is_text, is_video, is_image, is_output_dir, is_yaml, make_output_filename,

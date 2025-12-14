@@ -20,6 +20,7 @@ from nunif.models import compile_model
 import nunif.utils.video as VU
 from nunif.utils.ui import is_image, is_video, is_text, is_output_dir, make_parent_dir, list_subdir, TorchHubDir
 from nunif.utils.ticket_lock import TicketLock
+from nunif.utils.autocrop import AutoCrop, AutoCropDummy
 from nunif.device import create_device, device_is_cuda, mps_is_available, xpu_is_available
 from nunif.models.data_parallel import DeviceSwitchInference
 from . import export_config
@@ -29,15 +30,16 @@ from .anaglyph import apply_anaglyph_redcyan
 from .mapper import get_mapper, resolve_mapper_name, MAPPER_ALL
 from .depth_model_factory import create_depth_model
 from .base_depth_model import BaseDepthModel
+from .hub_dir import HUB_MODEL_DIR
 from .equirectangular import equirectangular_projection
 from .backward_warp import (
     apply_divergence_grid_sample,
     apply_divergence_nn_LR,
 )
 from .stereo_model_factory import create_stereo_model
+from .inpaint_utils import INPAINT_MODELS
 
 
-HUB_MODEL_DIR = path.join(path.dirname(__file__), "pretrained_models", "hub")
 ROW_FLOW_V2_MAX_DIVERGENCE = 2.5
 ROW_FLOW_V3_MAX_DIVERGENCE = 5.0
 ROW_FLOW_V2_AUTO_STEP_DIVERGENCE = 2.0
@@ -137,9 +139,14 @@ def make_output_filename(input_filename, args, video=False):
             ema = f"_ema{to_deciaml(args.ema_decay, 100, 2)}"
         else:
             ema = ""
+        if isinstance(args.edge_dilation, (list, tuple)):
+            edge_dilation = "x".join([str(v) for v in args.edge_dilation])
+        else:
+            edge_dilation = args.edge_dilation
+
         metadata = (f"_{args.depth_model}_{resolution}{tta}{args.method}_"
                     f"d{to_deciaml(args.divergence, 10, 2)}_c{to_deciaml(args.convergence, 10, 2)}_"
-                    f"di{args.edge_dilation}_fs{args.foreground_scale}_ipd{to_deciaml(args.ipd_offset, 1)}{ema}")
+                    f"di{edge_dilation}_fs{args.foreground_scale}_ipd{to_deciaml(args.ipd_offset, 1)}{ema}")
     else:
         metadata = ""
 
@@ -447,11 +454,17 @@ def debug_depth_image(depth, args):
     return out
 
 
-def process_image(x, args, depth_model, side_model):
+def process_image(x, args, depth_model, side_model, skip_autocrop=None, autocrop_uncrop=False):
     assert depth_model.get_ema_buffer_size() == 1
+
+    if args.autocrop is None or skip_autocrop:
+        autocrop = AutoCropDummy()
+    else:
+        autocrop = AutoCrop.from_image(x, mode=args.autocrop, uncrop_enabled=autocrop_uncrop)
 
     with torch.inference_mode():
         x = preprocess_image(x, args)
+        x = autocrop.crop(x)
         depth = depth_model.infer(x, tta=args.tta, low_vram=args.low_vram,
                                   enable_amp=not args.disable_amp,
                                   edge_dilation=args.edge_dilation,
@@ -462,6 +475,8 @@ def process_image(x, args, depth_model, side_model):
             return debug_depth_image(depth, args)
         elif args.rgbd or args.half_rgbd:
             left_eye, right_eye = apply_rgbd(x, depth, mapper=args.mapper)
+            left_eye = autocrop.uncrop(left_eye)
+            right_eye = autocrop.uncrop(right_eye)
             sbs = postprocess_image(left_eye, right_eye, args)
             return sbs
         else:
@@ -472,8 +487,12 @@ def process_image(x, args, depth_model, side_model):
             if left_eye.ndim == 4:
                 # NOTE: side_model is video inpaint model.
                 #       This may be called from test_callback.
-                sbs = postprocess_image(left_eye[0], right_eye[0], args)
+                left_eye = autocrop.uncrop(left_eye[0])
+                right_eye = autocrop.uncrop(right_eye[0])
+                sbs = postprocess_image(left_eye, right_eye, args)
             else:
+                left_eye = autocrop.uncrop(left_eye)
+                right_eye = autocrop.uncrop(right_eye)
                 sbs = postprocess_image(left_eye, right_eye, args)
             return sbs
 
@@ -913,6 +932,26 @@ def process_video_full(input_filename, output_path, args, depth_model, side_mode
         gc_collect()
     else:
         segment_pts = set()
+    if args.autocrop is not None:
+        crop = AutoCrop.from_video_file(
+            input_filename,
+            mode=args.autocrop,
+            uncrop_enabled=False,
+            vf=args.vf,
+            device=args.state["device"],
+            batch_size=args.batch_size,
+            stop_event=args.state["stop_event"],
+            suspend_event=args.state["suspend_event"],
+            tqdm_fn=args.state["tqdm_fn"],
+            tqdm_title=f"{path.basename(input_filename)}: AutoCrop Analysis",
+        ).get_crop()
+        if crop is not None:
+            crop_filter = f"crop=x={crop[0]}:y={crop[1]}:w={crop[2]}:h={crop[3]}"
+            video_filter = args.vf + f",{crop_filter}" if args.vf else crop_filter
+        else:
+            video_filter = args.vf
+    else:
+        video_filter = args.vf
 
     def config_callback(stream):
         fps = VU.get_fps(stream)
@@ -934,7 +973,7 @@ def process_video_full(input_filename, output_path, args, depth_model, side_mode
         decay, buffer_size = depth_model.get_ema_state()
         depth_model.disable_ema()
         x = VU.to_tensor(frame, device=args.state["device"])
-        x = process_image(x, args, depth_model, side_model)
+        x = process_image(x, args, depth_model, side_model, skip_autocrop=True)
         if ema_normalize:
             # reset ema to avoid affecting test frames
             depth_model.enable_ema(decay=decay, buffer_size=buffer_size)
@@ -955,7 +994,7 @@ def process_video_full(input_filename, output_path, args, depth_model, side_mode
                                  args=args
                              ),
                              test_callback=test_callback,
-                             vf=args.vf,
+                             vf=video_filter,
                              stop_event=args.state["stop_event"],
                              suspend_event=args.state["suspend_event"],
                              tqdm_fn=args.state["tqdm_fn"],
@@ -971,10 +1010,10 @@ def process_video_full(input_filename, output_path, args, depth_model, side_mode
                                  depth_model=depth_model,
                                  side_model=side_model,
                                  segment_pts=segment_pts,
-                                 args=args
+                                 args=args,
                              ),
                              test_callback=test_callback,
-                             vf=args.vf,
+                             vf=video_filter,
                              stop_event=args.state["stop_event"],
                              suspend_event=args.state["suspend_event"],
                              tqdm_fn=args.state["tqdm_fn"],
@@ -1008,7 +1047,7 @@ def process_video_full(input_filename, output_path, args, depth_model, side_mode
                                  config_callback=config_callback,
                                  frame_callback=frame_callback,
                                  test_callback=test_callback,
-                                 vf=args.vf,
+                                 vf=video_filter,
                                  stop_event=args.state["stop_event"],
                                  suspend_event=args.state["suspend_event"],
                                  tqdm_fn=args.state["tqdm_fn"],
@@ -1828,7 +1867,7 @@ def create_parser(required_true=True):
                                  "Any_V2_N_S", "Any_V2_N_B", "Any_V2_N_L",
                                  "Any_V2_K_S", "Any_V2_K_B", "Any_V2_K_L",
                                  "Distill_Any_S", "Distill_Any_B", "Distill_Any_L",
-                                 "Any_V3_Mono",
+                                 "Any_V3_Mono", "Any_V3_Mono_01",
                                  "DepthPro", "DepthPro_S",
                                  "VDA_S", "VDA_B", "VDA_L",
                                  "VDA_Metric", "VDA_Metric_S", "VDA_Metric_B", "VDA_Metric_L",
@@ -1921,14 +1960,27 @@ def create_parser(required_true=True):
     parser.add_argument("--scene-detect", action="store_true",
                         help=("splitting a scene using shot boundary detection. "
                               "ema and other states will be reset at the boundary of the scene."))
+    parser.add_argument("--autocrop", type=str.upper, default=None,
+                        choices=["BLACK_TB", "BLACK", "FLAT_TB", "FLAT"],
+                        help=("autocrop mode. automatically removes black bars. "
+                              "BLACK_TB: Removes only the top and bottom black bars. "
+                              "BLACK: Automatically removes black bars from all sides. "
+                              "FLAT_TB: Removes only the top and bottom flat-color borders."
+                              "FLAT: Removes flat-color borders. ",
+                              ))
+
     parser.add_argument("--edge-dilation", type=int, nargs="+", default=[2, 1],
                         help="loop count of edge dilation. <x> <y> or <xy>")
+
+    parser.add_argument("--inpaint-model", type=str, default=None, choices=list(INPAINT_MODELS.keys()),
+                        help="inpaint model name defined in iw3/inpaint_models.yml")
     parser.add_argument("--mask-inner-dilation", type=int, default=0,
                         help="loop count of inner mask dilation")
     parser.add_argument("--mask-outer-dilation", type=int, default=0,
                         help="loop count of outer mask dilation")
     parser.add_argument("--inpaint-max-width", type=int, default=None,
                         help="max width of inpaint result")
+
     parser.add_argument("--depth-aa", action="store_true",
                         help="apply depth antialiasing. ignored for unsupported models")
     parser.add_argument("--max-workers", type=int, default=0, choices=[0, 1, 2, 3, 4, 8, 16],
@@ -2133,7 +2185,8 @@ def iw3_main(args):
     side_model = create_stereo_model(
         args.method,
         divergence=args.divergence * (2.0 if args.synthetic_view in {"right", "left"} else 1.0),
-        device_id=args.gpu[0]
+        device_id=args.gpu[0],
+        inpaint_model=args.inpaint_model,
     )
     if side_model is not None and len(args.gpu) > 1 and args.method not in {"forward_inpaint", "mlbw_l2_inpaint"}:
         side_model = DeviceSwitchInference(side_model, device_ids=args.gpu)
