@@ -1,7 +1,4 @@
 import torch
-# zluda patch for amd gpu's
-import zluda
-# zluda patch for amd gpu's
 from .utils import create_parser, set_state_args, iw3_main
 from . import models # noqa
 from nunif.logger import logger

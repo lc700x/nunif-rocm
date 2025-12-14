@@ -1,7 +1,7 @@
 ## 1. Install dependencies packages
 
 ```
-sudo apt-get install git-core libmagickwand-dev libraqm-dev
+sudo apt-get install git-core libmagickwand-dev libraqm-dev python3-dev
 ```
 
 ## 2. Clone
@@ -35,11 +35,23 @@ source .venv/bin/activate
 
 ## 4. Install Pytorch and pip packages
 
+### Pytorch
+
+If you are using an NVIDIA GPU, 
 ```
 pip3 install -r requirements-torch.txt
+```
+or if you are using an AMD GPU.
+```
+pip3 install -r requirements-torch-rocm.txt
+```
+
+### Pip packages
+```
 pip3 install -r requirements.txt
 ```
 
+### GUI (optional)
 If you want to use GUI, install wxpython >= 4.0.0
 ```
 sudo apt-get install python3-wxgtk4.0
@@ -52,6 +64,12 @@ or build from source. See [Prerequisites](https://github.com/wxWidgets/Phoenix#p
 ```
 sudo apt-get install libgtk-3-dev
 pip3 install -r requirements-gui.txt
+```
+
+If you want to use training code, install `requirements-dev.txt`.
+
+```
+pip3 install -r requirements-dev.txt
 ```
 
 For instructions on how to build PyAV from source, please refer to [Building PyAV from source](#building-pyav-from-source).

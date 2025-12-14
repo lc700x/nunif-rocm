@@ -10,7 +10,7 @@ This project is under construction.
 
 ## Overview
 
-- Estimating depthmap using [ZeoDepth](https://github.com/isl-org/ZoeDepth) or [Depth-Anything](https://github.com/LiheYoung/Depth-Anything) or [Depth-Anything-V2](https://github.com/DepthAnything/Depth-Anything-V2) or [Depth Pro](https://github.com/apple/ml-depth-pro) or [Distill Any Depth](https://github.com/Westlake-AGI-Lab/Distill-Any-Depth) or [Video-Depth-Anything](https://github.com/DepthAnything/Video-Depth-Anything).
+- Estimating depthmap using [ZeoDepth](https://github.com/isl-org/ZoeDepth) or [Depth-Anything](https://github.com/LiheYoung/Depth-Anything) or [Depth-Anything-V2](https://github.com/DepthAnything/Depth-Anything-V2) or [Depth Pro](https://github.com/apple/ml-depth-pro) or [Distill Any Depth](https://github.com/Westlake-AGI-Lab/Distill-Any-Depth) or [Video-Depth-Anything](https://github.com/DepthAnything/Video-Depth-Anything) or [Depth Anything 3](https://github.com/ByteDance-Seed/Depth-Anything-3).
 - Generating side-by-side image using grid_sample based lightweight model
 
 ## Usage
@@ -108,8 +108,6 @@ Note that the transformation formula is different for ZoeDepth models(`ZoeD_N`, 
 
 (`Edge Fix` in GUI)
 
-This parameter is used only for DepthAnything models (`Any_S`, `Any_B`, `ANY_L`).
-
 DepthAnything model outputs very accurate depth, but in stereo generation, it causes artifacts at foreground and background edges.
 
 This approach reduces artifacts by dilating foreground segments (high value area).
@@ -117,6 +115,8 @@ This approach reduces artifacts by dilating foreground segments (high value area
 ![edge-dilation](https://github.com/nagadomi/nunif/assets/287255/cb67b93a-bf26-4ea2-ac8b-418d5dc716c3)
 
 `0` is disabled. `2` by default. `4` is the most eye-friendly, but it degrades depth accuracy.
+
+With a later update, the option now allows specifying both the X (horizontal) and Y (vertical) axes separately. In the GUI, the first value corresponds to the horizontal direction and the second to the vertical direction. If the second value is left empty, both axes will use the first setting, as before. See https://github.com/nagadomi/nunif/pull/540 .
 
 ## About Colorspace
 
@@ -269,6 +269,23 @@ This includes:
 
 See https://github.com/nagadomi/nunif/issues/406
 
+## AutoCrop
+
+Removes movie black bars (Letterbox) and image borders.
+
+For videos, AutoCrop is applied as a video filter (`crop` filter). It is applied after the user-specified `vf` option.
+
+If you want to restore black bars to make it 16:9, use `Padding = 16:9` (`--pad-mode 16:9`) option.
+
+| Mode     |                           |
+|----------|---------------------------
+|`BLACK_TB`| Removes only the top and bottom black bars.
+|`BLACK`   | Automatically removes black bars from all sides.
+|`FLAT_TB` | Removes only the top and bottom flat-color borders.
+|`FLAT`    | Removes flat-color borders.
+
+`FLAT*` mode is mainly intended for images. This also removes non-black borders. Please note that it may not work well with non-photographic artwork (e.g., Anime).
+
 ## Trouble shooting
 
 ### Output video is not SBS
@@ -373,11 +390,26 @@ python -m iw3 --max-fps 0.5 -i input_video.mp4 -o output_dir/
 
 If the results are acceptable, process the full video.
 
+### "HIP error: invalid device function" on older AMD GPUs
+
+Append the `HSA_OVERRIDE_GFX_VERSION` environment variable to your command. Below are examples launching the GUI module with different AMD GPUs.
+
+For 6700, 6600 and other RDNA2 or older,
+```
+HSA_OVERRIDE_GFX_VERSION=10.3.0 python -m iw3.gui
+```
+or for AMD 7600 and other RDNA3 cards:
+```
+HSA_OVERRIDE_GFX_VERSION=11.0.0 python -m iw3.gui
+```
+
 ## Limitation
 
 `--method row_flow_v3`(by default) is currently only trained for the range `0.0 <= divergence <= 5.0` and `0.0 <= convergence <= 1.0`.
 
 `--method mlbw_l2` and `--method mlbw_l4` are trained for the range `0.0 <= divergence <= 10.0` and `0.0 <= convergence <= 1.0`.
+
+`--method mlbw_l2_inapint` and `--method forward_inpaint` are trained for the range `0.0 <= divergence <= 5.0`.
 
 ## About row_flow model and its training
 
@@ -385,6 +417,10 @@ See https://github.com/nagadomi/nunif/issues/60 .
 
 Basically, fine tuning for this model is not necessary.
 Perhaps what is needed is fine tuning for ZoeDepth.
+
+## About inpainting and its training
+
+See https://github.com/nagadomi/nunif/pull/484 and [Inpainting Model Training](https://github.com/nagadomi/nunif/blob/iw3_inpaint/iw3/docs/inpaint_training.md).
 
 ## Monocular Depth Estimation Models
 
@@ -407,14 +443,24 @@ Perhaps what is needed is fine tuning for ZoeDepth.
 | `Any_V2_K_S`| Depth-Anything-V2 Metric Depth model VKITTI small. Tuned for outdoor scenes (dashboard camera view).
 | `Any_V2_K_B`| Depth-Anything-V2 Metric Depth model VKITTI base. Tuned for outdoor scenes (dashboard camera view).
 | `Any_V2_K_L`| Depth-Anything-V2 Metric Depth model VKITTI large. Tuned for outdoor scenes (dashboard camera view). (cc-by-nc-4.0)
+| `Any_V3_Mono`  | Depth-Anything-3 Monocular Depth large. In iw3, it is adjusted to generate SBS for VR devices (Max Scaler).
+| `Any_V3_Mono_01`  | Depth-Anything-3 Monocular Depth large. For anaglyph or 3D TV (Min-Max Scaler).
 | `DepthPro`  | Depth Pro model. 1536x1536 resolution. For image use.
 | `DepthPro_S`  | Depth Pro model. 1024x1024 modified resolution. For image use.
 | `Distill_Any_S`  | Distill Any Depth model small.
 | `Distill_Any_B`  | Distill Any Depth model base.
 | `Distill_Any_L`  | Distill Any Depth model large.
 | `VDA_S`  | Video Depth Anything small.
-| `VDA_L`  | Video Depth Anything large.
-| `VDA_Metric`  | Video Depth Anything metric depth model.
+| `VDA_B`  | Video Depth Anything base. (cc-by-nc-4.0)
+| `VDA_L`  | Video Depth Anything large. (cc-by-nc-4.0)
+| `VDA_Metric_S`  | Video Depth Anything metric depth small model.
+| `VDA_Metric_B`  | Video Depth Anything metric depth base model. (cc-by-nc-4.0)
+| `VDA_Metric_L`  | Video Depth Anything metric depth large model. (cc-by-nc-4.0)
+| `VDA_Stream_S`  | Video Depth Anything streaming model small.
+| `VDA_Stream_B`  | Video Depth Anything streaming model base. (cc-by-nc-4.0)
+| `VDA_Stream_L`  | Video Depth Anything streaming model large. (cc-by-nc-4.0)
+
+
 
 Personally, I recommend `ZoeD_Any_N`, `Any_B` or `VDA_Metric`.
 `ZoeD_Any_N` looks the best for 3D scene. The DepthAnything models have more accurate foreground and background segmentation, but the foreground looks slightly flat.
@@ -446,7 +492,7 @@ These files can be downloaded from Models section of https://huggingface.co/dept
 
 ### About Video-Depth-Anything
 
-#### `VDA_L`, `VDA_Metric`
+#### `VDA_B`, `VDA_L`, `VDA_Metric_B`, `VDA_Metric_L`
 
 These models are licensed under cc-by-nc-4.0 (Non Commercial).
 If you want to use it, agree to the pre-trained model license and place the checkpoint file yourself.
@@ -454,12 +500,18 @@ If you want to use it, agree to the pre-trained model license and place the chec
 | Short Name | Path |
 |------------|------|
 | `VDA_L` | `iw3/pretrained_models/hub/checkpoints/video_depth_anything_vitl.pth`
-| `VDA_Metric` | `iw3/pretrained_models/hub/checkpoints/metric_video_depth_anything_vitl.pth`
+| `VDA_B` | `iw3/pretrained_models/hub/checkpoints/video_depth_anything_vitb.pth`
+| `VDA_Metric_B` | `iw3/pretrained_models/hub/checkpoints/metric_video_depth_anything_vitb.pth`
+| `VDA_Metric_L` | `iw3/pretrained_models/hub/checkpoints/metric_video_depth_anything_vitl.pth`
 
 These files can be downloaded from Models section of https://huggingface.co/depth-anything .
 
 - https://huggingface.co/depth-anything/Video-Depth-Anything-Large
+- https://huggingface.co/depth-anything/Video-Depth-Anything-Base
 - https://huggingface.co/depth-anything/Metric-Video-Depth-Anything-Large
+- https://huggingface.co/depth-anything/Metric-Video-Depth-Anything-Base
+
+`VDA_Stream_*` uses the same checkpoint files as `VDA_*`.
 
 #### VDA Implementation Notes
 
@@ -499,15 +551,19 @@ These files are in `.safetensors` format, so conversion to `.pth` is not require
 | Short Name  |                   |
 |-------------|-------------------|
 | `row_flow_v3`    | Calculating the backward warping parameters with ML model. Trained with `0.0 <= divergence <= 5.0` and synthetic training data generated by `forward_fill`. Default method.
+| `row_flow_v3_sym`| Calculating the backward warping(`grid_sample`) parameters with ML model. The left and right parameters are fully symmetric. 2x faster than `row_flow_v3`. For experimental use.
 | `mlbw_l2`    | Calculating the 2-layer backward warping parameters with ML model. Trained with `0.0 <= divergence <= 10.0`.
 | `mlbw_l4`    | Calculating the 4-layer backward warping parameters with ML model. Trained with `0.0 <= divergence <= 10.0`.
 | `mlbw_l2s`   | The small model of `mlbw_l2`. Trained with `0.0 <= divergence <= 5.0`. When `4.0 < divergence`, the same model as `mlbw_l2` is used.
 | `mlbw_l4s`   | The small model of `mlbw_l4`. Trained with `0.0 <= divergence <= 5.0`. When `4.0 < divergence`, the same model as `mlbw_l4` is used.
+| `mlbw_l2_inpaint`   | `mlbw_l2` with lightweight inpainting.
 | `row_flow_v2`    | Previous default model. Trained with `0.0 <= divergence <= 2.5` and synthetic training data generated by [stable-diffusion-webui-depthmap-script](https://github.com/thygate/stable-diffusion-webui-depthmap-script) 's method.
 | `forward_fill`   | Depth order bilinear forward warping. Non ML method.
-| `row_flow_v3_sym`| Calculating the backward warping(`grid_sample`) parameters with ML model. The left and right parameters are fully symmetric. 2x faster than `row_flow_v3`. For experimental use.
+| `forward_inpaint`   | `forward` with lightweight inpainting.
 | `forward`        | `forward_fill` without hole fill. For experimental use.
 | `grid_sample`,`backward`  | Naive backward warping. Lots of ghost artifacts. For experimental use.
+
+For details on inpainting, see https://github.com/nagadomi/nunif/pull/484 .
 
 ## Multi-GPU
 
@@ -525,6 +581,9 @@ The command syncs the following repositories.
 - https://github.com/nagadomi/ZoeDepth_iw3
 - https://github.com/nagadomi/MiDaS_iw3
 - https://github.com/nagadomi/Depth-Anything_iw3
+- https://github.com/nagadomi/ml-depth-pro_iw3
+- https://github.com/nagadomi/Video-Depth-Anything_iw3
+- https://github.com/nagadomi/Depth-Anything-3_iw3
 
 If you already downloaded the model files (checkpoint filess), downloading model files will be skipped.
 

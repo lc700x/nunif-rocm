@@ -54,7 +54,7 @@ def VideoDepthAnythingOnline(encoder, device="cpu"):
     return model
 
 
-def VideoDepthAnythingStreaming(encoder, device="cpu"):
+def VideoDepthAnythingStreaming(encoder, device="cpu", metric_depth=False):
     from video_depth_anything.video_depth_stream_torch import VideoDepthAnythingStreamingTorch
     assert encoder in {"vitl", "vitb", "vits"}
 
@@ -64,7 +64,7 @@ def VideoDepthAnythingStreaming(encoder, device="cpu"):
         'vitl': {'encoder': 'vitl', 'features': 256, 'out_channels': [256, 512, 1024, 1024]},
     }
     model = VideoDepthAnythingStreamingTorch(device=device, **model_configs[encoder])
-    model.load_state_dict(_load_state_dict(encoder, metric_depth=False), strict=True)
+    model.load_state_dict(_load_state_dict(encoder, metric_depth=metric_depth), strict=True)
 
     return model
 

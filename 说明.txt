@@ -1,0 +1,29 @@
+# iw3_zluda hip6 by LC700X
+## 教程视频
+https://www.bilibili.com/video/BV1KJxuzQEsx
+## 系统依赖
+1. 双击运行文件夹中的enable_long_path.reg
+2. 下载https://aka.ms/vc14/vc_redist.x64.exe并安装
+3. AMD显卡驱动 （推荐25.12.1或25.9.2版本）
+4. HIP SDK 6.X版本，手动添加%HIP_PATH%bin到PATH
+5. 替换对应显卡GFX编号的rocblas文件并重启Windows
+
+## 模型安装说明
+推荐Any_V2_N系列模型，懒人版已经自带:
+Any_V2_N_B
+Any_V2_N_S
+
+其他模型请手动下载根目录里checkpoints的模型权重文件，步骤如下:
+1. 关闭iw3/iw3 desktop
+2. 进入\nunif\iw3\pretrained_models\hub\checkpoints\
+3. 移动需要的模型权重文件到上述位置
+4. 重启iw3/iw3 desktop
+
+## 附：对比原版的修改  
+- IW3 Desktop的60FPS, 2K/4K输出选项  
+- 解决ROCm7平台上IW3 Desktop实时3D中的encode_jpeg报错
+- 启用Flash-Attention和TF32   
+- 抗锯齿支持更多Depth-Anything系列模型  
+- 个人推荐的运行参数
+
+

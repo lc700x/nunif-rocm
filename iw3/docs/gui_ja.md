@@ -17,7 +17,7 @@ VRで本当に見たかった画像・動画をVRデバイスで3Dメディア�
 
 深度推定には以下の事前学習済みモデルが使用できます。
 
-[ZeoDepth](https://github.com/isl-org/ZoeDepth) or [Depth-Anything](https://github.com/LiheYoung/Depth-Anything) or [Depth-Anything-V2](https://github.com/DepthAnything/Depth-Anything-V2) or [Depth Pro](https://github.com/apple/ml-depth-pro) or [Distill Any Depth](https://github.com/Westlake-AGI-Lab/Distill-Any-Depth).
+[ZeoDepth](https://github.com/isl-org/ZoeDepth) or [Depth-Anything](https://github.com/LiheYoung/Depth-Anything) or [Depth-Anything-V2](https://github.com/DepthAnything/Depth-Anything-V2) or [Depth Pro](https://github.com/apple/ml-depth-pro) or [Distill Any Depth](https://github.com/Westlake-AGI-Lab/Distill-Any-Depth) or [Video-Depth-Anything](https://github.com/DepthAnything/Video-Depth-Anything) or [Depth Anything 3](https://github.com/ByteDance-Seed/Depth-Anything-3)
 
 ## 入力
 
@@ -113,11 +113,15 @@ VR Player側で設定できる場合もあります。通常は0を選択して�
 | `mlbw_l4`    | 4レイヤー逆方向ワーピングのパラメータを機械学習モデルで算出します。`0.0 <= divergence <= 10.0`の範囲で学習されています。
 | `mlbw_l2s`   | `mlbw_l2`の小さいモデルです. `0.0 <= divergence <= 5.0`の範囲で学習されています。`4.0 < divergence`の場合は`mlbw_l2`と同じモデルが使われます。
 | `mlbw_l4s`   | `mlbw_l4`の小さいモデルです. `0.0 <= divergence <= 5.0`の範囲で学習されています。`4.0 < divergence`の場合は`mlbw_l4`と同じモデルが使われます。
+| `mlbw_l2_inpaint`   | `mlbw_l2`を使ったインペイントモデル。
 | `row_flow_v2`    | 以前のデフォルトメソッド。`0.0 <= divergence <= 2.5`の範囲で[stable-diffusion-webui-depthmap-script](https://github.com/thygate/stable-diffusion-webui-depthmap-script)で生成した合成データで学習されています。
 | `forward_fill`   | 深度順の順方向ワーピング（ソース側からのサンプリングは行わず穴は隣接ピクセルで埋める+重なった領域は深度的に前にあるほうで上書き）。非機械学習の率直なメソッド。
+| `forward_inpaint`   | `forward`を使ったインペイントモデル。
 | `row_flow_v3_sym`| `row_flow_v3`の左右対称制約版。左と右のワープパラメータは完全に左右対称になります。`row_flow_v3`より2倍速い。実験用。
 | `forward`        | 穴を埋めない`forward_fill`。実験用。
 | `grid_sample`,`backward`  | 素朴な逆方向ワーピング。ひどいゴーストアーティファクトが発生します。実験用。
+
+インペイントについては https://github.com/nagadomi/nunif/pull/484 を参照。
 
 ### ステレオ処理幅
 
@@ -146,38 +150,35 @@ Exportした深度画像を別のソフトウェアで処理するときにフ�
 | `ZoeD_Any_K`| Depth-Anything metric depth model KITTI
 | `Any_S`     | Depth-Anything model small. 一番速い
 | `Any_B`     | Depth-Anything model base.
-| `Any_L`     | Depth-Anything model large. 精度が高いが重い
+| `Any_L`     | Depth-Anything model large.
 | `Any_V2_S`  | Depth-Anything-V2 model small. 一番速いV2
 | `Any_V2_B`  | Depth-Anything-V2 model base. (cc-by-nc-4.0)
-| `Any_V2_L`  | Depth-Anything-V2 model large. (cc-by-nc-4.0) 深度の精度は一番高い
+| `Any_V2_L`  | Depth-Anything-V2 model large. (cc-by-nc-4.0)
 | `Any_V2_N_S`| Depth-Anything-V2 Metric Depth model Hypersim small. Tuned for indoor scenes.
 | `Any_V2_N_B`| Depth-Anything-V2 Metric Depth model Hypersim base. Tuned for indoor scenes
 | `Any_V2_N_L`| Depth-Anything-V2 Metric Depth model Hypersim large. Tuned for indoor scenes. (cc-by-nc-4.0)
 | `Any_V2_K_S`| Depth-Anything-V2 Metric Depth model VKITTI small. Tuned for outdoor scenes (dashboard camera view).
 | `Any_V2_K_B`| Depth-Anything-V2 Metric Depth model VKITTI base. Tuned for outdoor scenes (dashboard camera view).
 | `Any_V2_K_L`| Depth-Anything-V2 Metric Depth model VKITTI large. Tuned for outdoor scenes (dashboard camera view). (cc-by-nc-4.0)
+| `Any_V3_Mono`  | Depth-Anything-3 Monocular Depth large. VRデバイス用
+| `Any_V3_Mono_01`  | Depth-Anything-3 Monocular Depth large. 3D TV・アナグリフ用
 | `DepthPro`  | Depth Pro model. 1536x1536 resolution. For image use.
 | `DepthPro_S`  | Depth Pro model. 1024x1024 modified resolution. For image use.
 | `Distill_Any_S`  | Distill Any Depth model small.
 | `Distill_Any_B`  | Distill Any Depth model base.
 | `Distill_Any_L`  | Distill Any Depth model large.
+| `VDA_S`  | Video Depth Anything small.
+| `VDA_B`  | Video Depth Anything base. (cc-by-nc-4.0)
+| `VDA_L`  | Video Depth Anything large. (cc-by-nc-4.0)
+| `VDA_Metric_S`  | Video Depth Anything metric depth small model.
+| `VDA_Metric_B`  | Video Depth Anything metric depth base model. (cc-by-nc-4.0)
+| `VDA_Metric_L`  | Video Depth Anything metric depth large model. (cc-by-nc-4.0)
+| `VDA_Stream_S`  | Video Depth Anything streaming model small.
+| `VDA_Stream_B`  | Video Depth Anything streaming model base. (cc-by-nc-4.0)
+| `VDA_Stream_L`  | Video Depth Anything streaming model large. (cc-by-nc-4.0)
 
 
-通常は`ZoeD_N`か`Any_B`,または`ZoeD_Any_N`を選択してください。
-
-`ZoeD_N`は屋内シーンのデータで調節されたモデルです。`ZoeD_K`は、屋外シーンのデータで調節されたモデルですが、屋外シーンというのがドライブレコーダーの映像です（これが向いているケースはないと思います）。
-
-`Any_B`はDepthAnythingの基本モデルです。`Any_S`が速くて精度が低い、`Any_L`が遅くて精度が高いバランスのモデルです。
-
-`ZoeD_Any_N`は、`ZoeD_N`のバックボーンを`Any_L`にして学習されたモデルです。3Dシーンの生成結果は最もよいと思います。
-
-DepthAnythingのほうが精度が高いですが、ステレオ生成の結果はZoeDepthのほうがよいことが多いです。DepthAnythingのほうが使用VRAMが少なく速いです。
-
-イラスト/アニメには、ZoeDepthよりもDepthAnythingのほうがよいです。`Any_V2_L`がよいですが、デフォルトでは利用できないので自分で配置する必要があります。
-
-またZoeDepthとDepthAnythingは出力する深度の種類が違います。ZeoDepthはメートル単位の距離を出力していて、DepthAnythingはDisparity(視差)を出力しています。近い結果に見えるように変換式を調節していますが、モデルを変更すると深度の精度だけではなく他の設定の見え方も全体的に変わることに注意してください。
-
-たくさんありますが、個人的には、`ZoeD_N`, `Any_B`, `ZoeD_Any_N`のどれかをオススメします。
+たくさんありますが、個人的には、`ZoeD_Any_N`、`VDA_B`、`Any_V3_Mono`のどれかをオススメします。
 
 ### `Any_V2_B` ,`Any_V2_L`, `Any_V2_N_L`, `Any_V2_K_L` について
 
@@ -210,13 +211,54 @@ DepthAnythingのほうが精度が高いですが、ステレオ生成の結果�
 
 これらのファイルは`.safetensors`形式です。`.pth`への変換は必要ありませんが、上記のファイル名にリネームする必要があります。
 
+### Video-Depth-Anythingについて
+
+#### `VDA_B`, `VDA_L`, `VDA_Metric_B`, `VDA_Metric_L`
+
+これらのモデルはcc-by-nc-4.0(非商用)の下で配布されています。
+使用したい場合は、それらのライセンスに同意して自分でファイルを配置してください。
+
+| Short Name | Path |
+|------------|------|
+| `VDA_L` | `iw3/pretrained_models/hub/checkpoints/video_depth_anything_vitl.pth`
+| `VDA_B` | `iw3/pretrained_models/hub/checkpoints/video_depth_anything_vitb.pth`
+| `VDA_Metric_B` | `iw3/pretrained_models/hub/checkpoints/metric_video_depth_anything_vitb.pth`
+| `VDA_Metric_L` | `iw3/pretrained_models/hub/checkpoints/metric_video_depth_anything_vitl.pth`
+
+これらのファイルは https://huggingface.co/depth-anything のモデルセクションからダウンロードできます。
+
+- https://huggingface.co/depth-anything/Video-Depth-Anything-Large
+- https://huggingface.co/depth-anything/Video-Depth-Anything-Base
+- https://huggingface.co/depth-anything/Metric-Video-Depth-Anything-Large
+- https://huggingface.co/depth-anything/Metric-Video-Depth-Anything-Base
+
+`VDA_Stream_*`は`VDA_*`と同じチェックポイントファイルを使用します。
+
+#### VDAの実装ノート
+
+以下のオプションが推奨されます。
+
+- `シーン境界検出` (`--scene-detect`)
+- `ちらつき軽減` (`--ema-normalize`)
+
+以下のオプションは無視されます。
+
+- `低VRAM` (`--low-vram`)
+- `TTA` (`--tta`)
+- `ワーカースレッド` (`--max-workers`)
+- `Stream` (`--cuda-stream`)
+
+`バッチサイズ`(`--batch-size`)も深度推定時は無視されます (32が使用されます)。しかし全処理やステレオ生成などでは使用されます。
+
+またオリジナル実装ではグローバルのMin-Maxを正規化に使用しますが、iw3のオンライン処理実装ではそれらの移動平均を使用します。
+
 ### 深度解像度
 
 深度推定時の解像度を上げることができます。解像度が高いほど処理時間がかかります。
 
 ZoeDepthモデルでは、モデル自体が高解像度に対応していないため、結果がよくなるかは分かりません。縦長の画像はデフォルトで大きめの解像度で計算されているので効果はありません。
 
-DepthAnythingモデルでは512(518)で適切な解像度になり深度の精度が上がります。
+DepthAnythingシリーズでは512(518)で適切な解像度になり深度の精度が上がります。DepthAnything V3では504です。
 
 ### 前景拡大
 
@@ -391,6 +433,25 @@ slowより遅い設定は使わないのが安全です。`medium`をオスス�
 ## 回転
 
 入力フレームを90°回転させます。スマホで撮影した動画など横向きになっている動画を処理前に修正する機能です。
+
+
+## AutoCrop
+
+映画の黒帯（レターボックス）や画像の枠を削除します。
+
+動画では、video filter(`crop` filter)として適用されます。ユーザーが指定した`vf`よりも後に適用されます。
+
+黒帯を復元して16:9にしたい場合は、`Padding = 16:9` (`--pad-mode 16:9`)オプションを使ってください。
+
+| Mode     |                           |
+|----------|---------------------------
+|`BLACK_TB`| 上下の黒帯だけを削除します。
+|`BLACK`   | 自動で全方向の黒帯を削除します。
+|`FLAT_TB` | 上下の単色の枠を削除します。
+|`FLAT`    | 単色の枠を削除します。
+
+`FLAT*`モードは主に画像用です。これは黒色以外の枠も削除します。アニメなど写真以外のアートではうまく動作しないことがあります。
+
 
 ## パディング
 

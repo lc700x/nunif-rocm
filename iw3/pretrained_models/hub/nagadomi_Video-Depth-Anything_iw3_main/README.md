@@ -21,10 +21,11 @@ This work presents **Video Depth Anything** based on [Depth Anything V2](https:/
 ![teaser](assets/teaser_video_v2.png)
 
 ## News
+- **2025-09-12:** Support streaming mode for metric depth models.
 - **2025-08-28:** Release ViT-base model for relative depth and ViT-small/base models for video metric depth.
 - **2025-07-03:** 🚀🚀🚀 Release an experimental version of training-free **streaming video depth estimation**.
 - **2025-07-03:** Release our implementation of [training loss](https://github.com/DepthAnything/Video-Depth-Anything/tree/main/loss).
-- **2025-04-25:** 🌟🌟🌟 Release [metric depth model](https://github.com/DepthAnything/Video-Depth-Anything/tree/main/metric_depth) based on Video-Depth-Anything-Large.
+- **2025-04-25:** 🌟🌟🌟 Release metric depth model based on Video-Depth-Anything-Large.
 - **2025-04-05:** Our paper has been accepted for a **highlight** presentation at [CVPR 2025](https://cvpr.thecvf.com/) (13.5% of the accepted papers).
 - **2025-03-11:** Add full dataset inference and evaluation [scripts](https://github.com/DepthAnything/Video-Depth-Anything/tree/main/benchmark).
 - **2025-02-08:** Enable autocast inference. Support grayscale video, NPZ and EXR output formats.
@@ -32,6 +33,15 @@ This work presents **Video Depth Anything** based on [Depth Anything V2](https:/
 
 
 ## Release Notes
+- **2025-08-28:** 🚀🚀🚀 Metric depth models released
+
+| δ1 | MoGe-2-L | UniDepthV2-L | DepthPro | VDA-S-Metric | VDA-B-Metric | VDA-L-Metric |
+|:-|:-:|:-:|:-:|:-:|:-:|:-:|
+| KITTI | 0.415 | **0.982** | 0.822 | 0.877 | 0.887 | *0.910* |
+| NYUv2 | *0.967* | **0.989** | 0.953 | 0.850| 0.883 | 0.908 |
+| **TAE** |  |  |  |  |  |  |
+| Scannet | 2.56 | 1.41 | 2.73 | 1.48 | *1.26* | **1.09** |
+
 - **2025-02-08:** 🚀🚀🚀 Inference speed and memory usage improvement
   <table>
     <thead>
@@ -67,13 +77,14 @@ This work presents **Video Depth Anything** based on [Depth Anything V2](https:/
   The Latency and GPU VRAM results are obtained on a single A100 GPU with input of shape 1 x 32 x 518 × 518.
 
 ## Pre-trained Models
-We provide **sevaral models** of varying scales for robust and consistent video depth estimation. For the usage of metric depth models, please refer to [Metric Depth](./metric_depth/README.md).
+We provide **several models** of varying scales for robust and consistent video depth estimation.
 
-| Model | Params | Checkpoint |
+| Relative Depth Model | Params | Checkpoint |
 |:-|-:|:-:|
 | Video-Depth-Anything-Small | 28.4M | [Download](https://huggingface.co/depth-anything/Video-Depth-Anything-Small/resolve/main/video_depth_anything_vits.pth?download=true) |
 | Video-Depth-Anything-Base | 113.1M | [Download](https://huggingface.co/depth-anything/Video-Depth-Anything-Base/blob/main/video_depth_anything_vitb.pth) | 
 | Video-Depth-Anything-Large | 381.8M | [Download](https://huggingface.co/depth-anything/Video-Depth-Anything-Large/resolve/main/video_depth_anything_vitl.pth?download=true) |
+| **Metric Depth Model** | **Params** | **Checkpoint**  |
 | Metric-Video-Depth-Anything-Small | 28.4M | [Download](https://huggingface.co/depth-anything/Metric-Video-Depth-Anything-Small/blob/main/metric_video_depth_anything_vits.pth) |
 | Metric-Video-Depth-Anything-Base | 113.1M | [Download](https://huggingface.co/depth-anything/Metric-Video-Depth-Anything-Base/blob/main/metric_video_depth_anything_vitb.pth) |
 | Metric-Video-Depth-Anything-Large | 381.8M | [Download](https://huggingface.co/depth-anything/Metric-Video-Depth-Anything-Large/resolve/main/metric_video_depth_anything_vitl.pth) |
@@ -94,9 +105,14 @@ Download the checkpoints listed [here](#pre-trained-models) and put them under t
 bash get_weights.sh
 ```
 
-### Inference a video
+### Run inference on a video
+We support both relative depth and metric depth:
 ```bash
+# For relative depth
 python3 run.py --input_video ./assets/example_videos/davis_rollercoaster.mp4 --output_dir ./outputs --encoder vitl
+
+# For metric depth
+python3 run.py --input_video ./assets/example_videos/davis_rollercoaster.mp4 --output_dir ./outputs --encoder vitl --metric
 ```
 
 Options:
@@ -107,17 +123,22 @@ Options:
 - `--encoder` (optional): `vits` for Video-Depth-Anything-Small, `vitb` for Video-Depth-Anything-Base, `vitl` for Video-Depth-Anything-Large.
 - `--max_len` (optional): maximum length of the input video, `-1` means no limit
 - `--target_fps` (optional): target fps of the input video, `-1` means the original fps
+- `--metric` (optional): use metric depth models trained on Virtual KITTI and IRS datasets
 - `--fp32` (optional): Use `fp32` precision for inference. By default, we use `fp16`.
 - `--grayscale` (optional): Save the grayscale depth map, without applying color palette.
 - `--save_npz` (optional): Save the depth map in `npz` format.
 - `--save_exr` (optional): Save the depth map in `exr` format.
 
-### Inference a video using streaming mode (Experimental features)
+### Run inference on a video using streaming mode (Experimental features)
 We implement an experimental streaming mode **without training**. In details, we save the hidden states of temporal attentions for each frames in the caches, and only send a single frame into our video depth model during inference by reusing these past hidden states in temporal attentions. We hack our pipeline to align the original inference setting in the offline mode. Due to the inevitable gap between training and testing, we observe a **performance drop** between the streaming model and the offline model (e.g. the `d1` of ScanNet drops from `0.926` to `0.836`). Finetuning the model in the streaming mode will greatly improve the performance. We leave it for future work.
 
 To run the streaming model:
 ```bash
+# For relative depth
 python3 run_streaming.py --input_video ./assets/example_videos/davis_rollercoaster.mp4 --output_dir ./outputs_streaming --encoder vitl
+
+# For metric depth
+python3 run_streaming.py --input_video ./assets/example_videos/davis_rollercoaster.mp4 --output_dir ./outputs_streaming --encoder vitl --metric
 ```
 Options:
 - `--input_video`: path of input video
@@ -127,14 +148,12 @@ Options:
 - `--encoder` (optional): `vits` for Video-Depth-Anything-Small, `vitb` for Video-Depth-Anything-Base, `vitl` for Video-Depth-Anything-Large.
 - `--max_len` (optional): maximum length of the input video, `-1` means no limit
 - `--target_fps` (optional): target fps of the input video, `-1` means the original fps
+- `--metric` (optional): use metric depth models trained on Virtual KITTI and IRS datasets
 - `--fp32` (optional): Use `fp32` precision for inference. By default, we use `fp16`.
 - `--grayscale` (optional): Save the grayscale depth map, without applying color palette.
 
 ## Training Loss
 Our training loss is in `loss/` directory. Please see the `loss/test_loss.py` for usage.
-
-## Fine-tuning to a metric-depth video model
-Please refer to [Metric Depth](./metric_depth/README.md).
 
 ## Benchmark
 Please refer to [Benchmark](./benchmark/README.md).
@@ -146,7 +165,7 @@ If you find this project useful, please consider citing:
 ```bibtex
 @article{video_depth_anything,
   title={Video Depth Anything: Consistent Depth Estimation for Super-Long Videos},
-  author={Chen, Sili and Guo, Hengkai and Zhu, Shengnan and Zhang, Feihu and Huang, Zilong and Feng, Jiashi and Kang, Bingyi}
+  author={Chen, Sili and Guo, Hengkai and Zhu, Shengnan and Zhang, Feihu and Huang, Zilong and Feng, Jiashi and Kang, Bingyi},
   journal={arXiv:2501.12375},
   year={2025}
 }
@@ -154,4 +173,4 @@ If you find this project useful, please consider citing:
 
 
 ## LICENSE
-Video-Depth-Anything-Small model is under the Apache-2.0 license. Video-Depth-Anything-Large model is under the CC-BY-NC-4.0 license. For business cooperation, please send an email to Hengkai Guo at guohengkaighk@gmail.com.
+Video-Depth-Anything-Small model is under the Apache-2.0 license. Video-Depth-Anything-Base/Large model is under the CC-BY-NC-4.0 license. For business cooperation, please send an email to Hengkai Guo at guohengkaighk@gmail.com.

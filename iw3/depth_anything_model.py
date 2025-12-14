@@ -4,7 +4,7 @@ import torch
 import torch.nn.functional as F
 from torchvision.transforms import functional as TF
 from nunif.device import create_device, autocast, device_is_mps, device_is_xpu # noqa
-from .dilation import dilate_edge
+from .dilation import dilate_edge, edge_dilation_is_enabled
 from .base_depth_model import BaseDepthModel, HUB_MODEL_DIR
 from .models import DepthAA
 
@@ -58,10 +58,33 @@ MODEL_FILES = {
     "Distill_Any_B": path.join(HUB_MODEL_DIR, "checkpoints", "distill_any_depth_vitb.safetensors"),
     "Distill_Any_L": path.join(HUB_MODEL_DIR, "checkpoints", "distill_any_depth_vitl.safetensors"),
 }
+# AA_SUPPORTED_MODELS = {
+#     "Any_V2_S",
+#     "Any_V2_B",
+#     "Any_V2_L",
+# }
+
+# Edited by LC700X to reduce jagged edge in DEPTH ANYTHING Models
 AA_SUPPORTED_MODELS = {
-    "Any_V2_S",
-    "Any_V2_B",
-    "Any_V2_L",
+  "ZoeD_Any_N",
+  "ZoeD_Any_K",
+  "Any_S",
+  "Any_B",
+  "Any_L",
+  "Any_V2_S",
+  "Any_V2_B",
+  "Any_V2_L",
+  "Any_V2_N",
+  "Any_V2_K"
+  "Any_V2_N_S",
+  "Any_V2_N_B",
+  "Any_V2_N_L",
+  "Any_V2_K_S",
+  "Any_V2_K_B",
+  "Any_V2_K_L",
+  "Distill_Any_S",
+  "Distill_Any_B",
+  "Distill_Any_L"
 }
 
 
@@ -145,26 +168,26 @@ def batch_infer(model, im, flip_aug=True, low_vram=False, enable_amp=False,
     if depth_aa is not None:
         out = depth_aa.infer(out)
 
-    if edge_dilation > 0:
+    if edge_dilation_is_enabled(edge_dilation):
         if not model.metric_depth:
             out = dilate_edge(out, edge_dilation)
         else:
-            out = dilate_edge(out.neg_(), edge_dilation).neg_()
+            out = -dilate_edge(-out, edge_dilation)
 
-    if not model.metric_depth:
+    if model.metric_depth:
         # invert for zoedepth compatibility
-        out.neg_()
+        out = -out
 
     if flip_aug:
         if batch:
             n = out.shape[0] // 2
             z = torch.empty((n, *out.shape[1:]), device=out.device)
             for i in range(n):
-                z[i] = (out[i] + torch.flip(out[i + n], dims=[2])) * 128
+                z[i] = (out[i] + torch.flip(out[i + n], dims=[2])) * 0.5
         else:
-            z = (out[0:1] + torch.flip(out[1:2], dims=[3])) * 128
+            z = (out[0:1] + torch.flip(out[1:2], dims=[3])) * 0.5
     else:
-        z = out * 256
+        z = out
     if not batch:
         assert z.shape[0] == 1
         z = z.squeeze(0)
@@ -280,10 +303,10 @@ def _bench():
     import time
 
     B = 4
-    N = 100
+    N = 20
     model = DepthAnythingModel("Any_L")
     model.load(gpu=0)
-    x = torch.randn((B, 3, 392, 392)).cuda()
+    x = torch.randn((B, 3, 1080, 1920)).cuda()
     model.infer(x)
     torch.cuda.synchronize()
 
@@ -293,6 +316,9 @@ def _bench():
             model.infer(x)
         torch.cuda.synchronize()
         print(round(1.0 / ((time.time() - t) / (B * N)), 4), "FPS")
+
+    max_vram_mb = int(torch.cuda.max_memory_allocated("cuda") / (1024 * 1024))
+    print(f"GPU Max Memory Allocated {max_vram_mb}MB")
 
 
 def _test():

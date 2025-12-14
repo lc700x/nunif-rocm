@@ -27,23 +27,23 @@ from urllib.parse import (
 import uuid
 from nunif.logger import logger, set_log_level
 from nunif.utils.filename import set_image_ext
+from nunif.utils.home_dir import ensure_home_dir
 from nunif.device import mps_is_available, xpu_is_available
 from ..utils import Waifu2x
+from ..model_dir import MODEL_DIR
+from .public_dir import PUBLIC_DIR
 
 
-DEFAULT_ART_MODEL_DIR = path.abspath(path.join(
-    path.join(path.dirname(path.abspath(__file__)), "..", "pretrained_models"),
-    "swin_unet", "art"))
-DEFAULT_ART_SCAN_MODEL_DIR = path.abspath(path.join(
-    path.join(path.dirname(path.abspath(__file__)), "..", "pretrained_models"),
-    "swin_unet", "art_scan"))
-DEFAULT_PHOTO_MODEL_DIR = path.abspath(path.join(
-    path.join(path.dirname(path.abspath(__file__)), "..", "pretrained_models"),
-    "swin_unet", "photo"))
+DEFAULT_ART_MODEL_DIR = path.abspath(path.join(MODEL_DIR, "swin_unet", "art"))
+DEFAULT_ART_SCAN_MODEL_DIR = path.abspath(path.join(MODEL_DIR, "swin_unet", "art_scan"))
+DEFAULT_PHOTO_MODEL_DIR = path.abspath(path.join(MODEL_DIR, "swin_unet", "photo"))
 BUFF_SIZE = 8192  # buffer block size for io access
 SIZE_MB = 1024 * 1024
 RECAPTCHA_VERIFY_URL = "https://www.google.com/recaptcha/api/siteverify"
-COMPILE_LOCK = path.join("tmp", "waifu2x_web_compile.lock")
+TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
+TMP_DIR = ensure_home_dir("waifu2x", path.join(path.dirname(__file__), "..", "..", "tmp"))
+COMPILE_LOCK = path.join(TMP_DIR, "waifu2x-web-compile.lock")
+os.makedirs(TMP_DIR, exist_ok=True)
 
 
 class ScaleOption(Enum):
@@ -108,7 +108,7 @@ def setup():
     parser.add_argument("--bind-addr", type=str, default="127.0.0.1",
                         help="0.0.0.0 for global, 127.0.0.1 for local")
     parser.add_argument("--port", type=int, default=8812, help="HTTP port number")
-    parser.add_argument("--root", type=str, default=path.join(path.dirname(__file__), "public_html"),
+    parser.add_argument("--root", type=str, default=PUBLIC_DIR,
                         help="web root directory")
     parser.add_argument("--backend", type=str, default="waitress",
                         help="server backend. It may not work except `waitress`.")
@@ -134,8 +134,10 @@ def setup():
                         help="image library to encode/decode images")
     parser.add_argument("--cache-ttl", type=int, default=30, help="cache TTL(min)")
     parser.add_argument("--cache-size-limit", type=int, default=10, help="cache size limit (GB)")
-    parser.add_argument("--cache-dir", type=str, default=path.join("tmp", "waifu2x_cache"), help="cache dir")
+    parser.add_argument("--cache-dir", type=str, default=path.join(TMP_DIR, "waifu2x_cache"), help="cache dir")
     parser.add_argument("--enable-recaptcha", action="store_true", help="enable reCAPTCHA. it requires --config option")
+    parser.add_argument("--enable-turnstile", action="store_true",
+                        help="enable CloudFlare Turnstile. it requires --config option")
     parser.add_argument("--config", type=str, help="config file for API tokens")
     parser.add_argument("--no-size-limit", action="store_true", help="No file/image size limits for private server")
     parser.add_argument("--torch-threads", type=int, help="The number of threads used for intraop parallelism on CPU")
@@ -179,6 +181,11 @@ def setup():
             raise RuntimeError("--enable-recaptcha: No recaptcha setting in config file")
         else:
             config["recaptcha"] = {"site_key": "", "secret_key": ""}
+    if "turnstile" not in config:
+        if args.enable_turnstile:
+            raise RuntimeError("--enable-turnstile: No turnstile setting in config file")
+        else:
+            config["turnstile"] = {"site_key": "", "secret_key": ""}
 
     return args, config, art_ctx, art_scan_ctx, photo_ctx, cache, cache_gc
 
@@ -198,7 +205,7 @@ def fetch_uploaded_file(upload_file):
 
         image_data = upload_buff.getvalue()
         if image_data:
-            logger.debug(f"fetch_uploaded_file: {round(len(image_data)/(SIZE_MB), 3)}MB")
+            logger.debug(f"fetch_uploaded_file: {round(len(image_data) / SIZE_MB, 3)}MB")
         return image_data
 
 
@@ -218,7 +225,7 @@ def fetch_url_file(url):
                 if file_size > max_body_size:
                     logger.debug(f"fetch_url_file: error: too large, {url}")
                     bottle.abort(413, f"Request entity too large (max: {MAX_BODY_SIZE}MB)")
-            logger.debug(f"fetch_url_file: {round(file_size/(SIZE_MB), 3)}MB, {url}")
+            logger.debug(f"fetch_url_file: {round(file_size / SIZE_MB, 3)}MB, {url}")
             return buff.getvalue()
     except requests.exceptions.RequestException as e:
         logger.debug(f"fetch_url_file: error: {e}, {url}")
@@ -311,8 +318,10 @@ def make_output_filename(style, method, noise, image_format, meta):
 @bottle.get("/recaptcha_state.json")
 def recaptcha_state():
     state = {
-        "enabled": command_args.enable_recaptcha,
-        "site_key": config["recaptcha"]["site_key"]
+        "recaptcha_enabled": command_args.enable_recaptcha,
+        "recaptcha_site_key": config["recaptcha"]["site_key"],
+        "turnstile_enabled": command_args.enable_turnstile,
+        "turnstile_site_key": config["turnstile"]["site_key"],
     }
     res = HTTPResponse(status=200, body=json.dumps(state))
     res.set_header("Content-Type", "application/json")
@@ -341,6 +350,30 @@ def verify_recaptcha(request):
     except requests.exceptions.RequestException as e:
         logger.error(f"verify_recaptcha: error: {e}")
         bottle.abort(500, "reCAPTCHA Error")
+
+
+def verify_turnstile(request):
+    if not command_args.enable_turnstile:
+        return True
+
+    timeout = command_args.url_timeout
+    data = {
+        "response": request.forms.get("turnstile", ""),
+        "secret": config["turnstile"]["secret_key"],
+        "remoteip": request.remote_addr
+    }
+    try:
+        res = requests.post(TURNSTILE_VERIFY_URL, data=data, timeout=timeout)
+        if res.status_code == 200:
+            result = json.loads(res.text)
+            logger.debug("verify_turnstile: " + ("success" if result['success'] else "failure"))
+            return result["success"]
+        else:
+            logger.error(f"verify_turnstile: HTTP Error {res.status_code} {res.text}")
+            bottle.abort(500, "Turnstile Error")
+    except requests.exceptions.RequestException as e:
+        logger.error(f"verify_turnstile: error: {e}")
+        bottle.abort(500, "Turnstile Error")
 
 
 def dump_meta(meta):
@@ -398,6 +431,9 @@ def api():
 
     if command_args.enable_recaptcha and not verify_recaptcha(request):
         bottle.abort(401, "reCAPTCHA Error")
+    if command_args.enable_turnstile and not verify_turnstile(request):
+        bottle.abort(401, "Turnstile Error")
+
     with global_lock:
         cache_gc.gc()
 
@@ -441,7 +477,7 @@ def api():
                         rgb, alpha = photo_ctx.convert(**ctx_kwargs)
                 depth = meta["depth"] if "depth" in meta and meta["depth"] is not None else 8
                 z = IL.to_image(rgb, alpha, depth=depth)
-            logger.debug(f"api: forward: {round(time()-t, 2)}s, {style} {scale} {noise} {image_format}, "
+            logger.debug(f"api: forward: {round(time() - t, 2)}s, {style} {scale} {noise} {image_format}, "
                          f"pid={os.getpid()}-{threading.get_ident()}")
         t = time()
         image_data = IL.encode_image(z, format=image_format, meta=meta)
@@ -449,7 +485,7 @@ def api():
         if im != z:
             im.close()
         z.close()
-        logger.debug(f"api: encode: {round(time()-t, 2)}s")
+        logger.debug(f"api: encode: {round(time() - t, 2)}s")
     else:
         im.close()
         logger.debug(f"api: load cache: {style} {scale} {noise}")
