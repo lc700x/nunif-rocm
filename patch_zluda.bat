@@ -3,14 +3,11 @@ cls
 echo --- IW3 Installer for AMD GPU's on Windows (With ZLUDA)---
 echo.
 Set "VIRTUAL_ENV=.\python"
-echo - Patching ZLUDA (Zluda 3.9.5 for HIP SDK 6.4.2)
-%SystemRoot%\system32\curl -sL --ssl-no-revoke https://github.com/lshqqytiger/ZLUDA/releases/download/rel.5e717459179dc272b7d7d23391f0fad66c7459cf/ZLUDA-windows-rocm6-amd64.zip > zluda.zip
-%SystemRoot%\system32\tar -xf zluda.zip
-@REM del zluda.zip
+echo - Patching ZLUDA (Zluda 3.9.5 for HIP SDK)
 copy zluda\cublas.dll %VIRTUAL_ENV%\Lib\site-packages\torch\lib\cublas64_11.dll /y >NUL
 copy zluda\cusparse.dll %VIRTUAL_ENV%\Lib\site-packages\torch\lib\cusparse64_11.dll /y >NUL
 copy zluda\nvrtc.dll %VIRTUAL_ENV%\Lib\site-packages\torch\lib\nvrtc64_112_0.dll /y >NUL
-echo - ZLUDA is patched. (Zluda 3.9.5 for HIP 6.4.2)
+echo - ZLUDA is patched.
 echo.
 echo You can now use the iw3 gui and cli with gpu acceleration with amd gpu's. 
 echo You can manually put model checkpoint files (*.pth, *.safetensors, .etc) to: nunif-amd\iw3\pretrained_models\hub\checkpoints\
