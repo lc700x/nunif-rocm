@@ -163,7 +163,6 @@ class DilatedDCNNV2(nn.Module):
         self.activation = activation
 
     def forward(self, inputs):
-        torch.backends.cudnn.enabled = False  # Disable cuDNN to avoid nondeterministic behavior by LC700X
         conv1 = self.Conv3D_1(inputs)
         conv2 = self.Conv3D_2(inputs)
         conv3 = self.Conv3D_4(inputs)
@@ -176,8 +175,6 @@ class DilatedDCNNV2(nn.Module):
 
         if self.activation is not None:
             x = self.activation(x)
-
-        torch.backends.cudnn.enabled = True  # Enable cuDNN after forward pass by LC700X
 
         return x
 

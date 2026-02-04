@@ -36,12 +36,6 @@ if torch.cuda.is_available():
         pass
     
     if "AMD" in DEVICE_INFO:
-        DISABLE_CUDNN_KEYWORDS = ["6950", "6900", "6850", "6800", "6750", "6700", "6650", "6600", "6550", "6500", "6400", "6300", "680", "6100"]
-        if any(keyword in DEVICE_INFO for keyword in DISABLE_CUDNN_KEYWORDS):
-            torch.backends.cudnn.enabled = False # only disable for RX 6000 series
-            print(f"Disabled cudnn backend for device: {DEVICE_INFO}")
-        else:
-            torch.backends.cudnn.enabled = True
         os.environ["TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL"] = "1" # Enable AOTriton for ROCm
         os.environ["FLASH_ATTENTION_TRITON_AMD_ENABLE"] = "TRUE" # Enable flash attention for AMD ROCm
         os.environ["FLASH_ATTENTION_TRITON_AMD_AUTOTUNE"] = "TRUE" # Enable flash attention autotune for AMD ROCm
@@ -1251,11 +1245,9 @@ class MainFrame(wx.Frame):
         else:
             # check compiler support
             if self.chk_compile.IsChecked():
-                # Bypass the check for torch.compile on ROCm7 by LC700X
-                # device = create_device(device_id)
-                # if not check_compile_support(device):
-                #     self.chk_compile.SetValue(False)
-                self.chk_compile.SetValue(True)
+                device = create_device(device_id)
+                if not check_compile_support(device):
+                    self.chk_compile.SetValue(False)
 
     def on_text_changed_cbo_language(self, event):
         lang = self.cbo_language.GetClientData(self.cbo_language.GetSelection())
