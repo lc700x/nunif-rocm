@@ -16,18 +16,35 @@ from wx.lib.buttons import GenBitmapButton
 from wx.lib.intctrl import IntCtrl
 import torch
 # Add for AMD ROCm7 by LC700X
-torch.backends.cudnn.enabled = False 
-os.environ["TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL"] = "1"
 if torch.cuda.is_available():
+    DEVICE_INFO = torch.cuda.get_device_name(0)
+
+    # Set cudnn benchmark for performance
     torch.backends.cudnn.benchmark = True
+    os.environ["TORCHINDUCTOR_MAX_AUTOTUNE"] ="1"
     # Enable TF32 for matrix multiplications
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.backends.cudnn.allow_tf32 = True
-    # Enable TF32 matrix multiplication for better performance
     torch.set_float32_matmul_precision('high')
-    # Enable math attention
-    torch.backends.cuda.enable_flash_sdp(True)
-    torch.backends.cuda.enable_mem_efficient_sdp(True)
+
+    # Enable math attention (safe-guard in case attributes unavailable)
+    try:
+        torch.backends.cuda.enable_flash_sdp(True)
+        torch.backends.cuda.enable_mem_efficient_sdp(True)
+        torch.backends.cuda.enable_math_sdp(True)
+    except Exception:
+        pass
+    
+    if "AMD" in DEVICE_INFO:
+        DISABLE_CUDNN_KEYWORDS = ["6950", "6900", "6850", "6800", "6750", "6700", "6650", "6600", "6550", "6500", "6400", "6300", "680", "6100"]
+        if any(keyword in DEVICE_INFO for keyword in DISABLE_CUDNN_KEYWORDS):
+            torch.backends.cudnn.enabled = False # only disable for RX 6000 series
+            print(f"Disabled cudnn backend for device: {DEVICE_INFO}")
+        else:
+            torch.backends.cudnn.enabled = True
+        os.environ["TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL"] = "1" # Enable AOTriton for ROCm
+        os.environ["FLASH_ATTENTION_TRITON_AMD_ENABLE"] = "TRUE" # Enable flash attention for AMD ROCm
+        os.environ["FLASH_ATTENTION_TRITON_AMD_AUTOTUNE"] = "TRUE" # Enable flash attention autotune for AMD ROCm
 from nunif.utils.git import get_current_branch
 from nunif.initializer import gc_collect
 from nunif.device import mps_is_available, xpu_is_available, create_device
@@ -78,11 +95,11 @@ EVT_FPS = wx.PyEventBinder(myEVT_FPS, 0)
 
 # Spin inclrement value
 DIVERGENCE_INC_DEFAULT = 0.25
-DIVERGENCE_INC_FINE = 0.01
+DIVERGENCE_INC_FINE = 0.005
 CONVERGENCE_INC_DEFAULT = 0.1
-CONVERGENCE_INC_FINE = 0.01
+CONVERGENCE_INC_FINE = 0.005
 FOREGROUNDSCALE_INC_DEFAULT = 0.2
-FOREGROUNDSCALE_INC_FINE = 0.01
+FOREGROUNDSCALE_INC_FINE = 0.005
 
 
 class FPSEvent(wx.PyCommandEvent):
@@ -189,7 +206,12 @@ class MainFrame(wx.Frame):
         self.cbo_divergence.SetSelection(5)
 
         self.lbl_convergence = wx.StaticText(self.grp_stereo, label=T("Convergence Plane"))
-        self.cbo_convergence = EditableComboBox(self.grp_stereo, choices=["0.0", "0.5", "1.0"],
+        self.cbo_convergence_mode = wx.ComboBox(self.grp_stereo, choices=["constant", "sod_v1"],
+                                                name="cbo_convergence_mode")
+        self.cbo_convergence_mode.SetEditable(False)
+        self.cbo_convergence_mode.SetSelection(0)
+
+        self.cbo_convergence = EditableComboBox(self.grp_stereo, choices=["0.0", "0.25", "0.5", "1.0"],
                                                 name="cbo_convergence")
         self.cbo_convergence.SetSelection(2)
         self.cbo_convergence.SetToolTip("Convergence")
@@ -284,7 +306,8 @@ class MainFrame(wx.Frame):
         layout.Add(self.cbo_divergence, (i, 1), (1, 2), flag=wx.EXPAND)
         layout.Add(self.lbl_divergence_warning, pos=(i := i + 1, 0), span=(0, 3), flag=wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
         layout.Add(self.lbl_convergence, (i := i + 1, 0), flag=wx.ALIGN_CENTER_VERTICAL)
-        layout.Add(self.cbo_convergence, (i, 1), (1, 2), flag=wx.EXPAND)
+        layout.Add(self.cbo_convergence_mode, (i, 1), flag=wx.EXPAND)
+        layout.Add(self.cbo_convergence, (i, 2), flag=wx.EXPAND)
         layout.Add(self.lbl_synthetic_view, (i := i + 1, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         layout.Add(self.cbo_synthetic_view, (i, 1), (1, 2), flag=wx.EXPAND)
         layout.Add(self.lbl_method, (i := i + 1, 0), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -1024,6 +1047,7 @@ class MainFrame(wx.Frame):
             gpu=device_id,
             divergence=float(self.cbo_divergence.GetValue()),
             convergence=float(self.cbo_convergence.GetValue()),
+            convergence_mode=self.cbo_convergence_mode.GetValue(),
             synthetic_view=self.cbo_synthetic_view.GetValue(),
             method=self.cbo_method.GetValue(),
             preserve_screen_border=preserve_screen_border,
@@ -1227,9 +1251,11 @@ class MainFrame(wx.Frame):
         else:
             # check compiler support
             if self.chk_compile.IsChecked():
-                device = create_device(device_id)
-                if not check_compile_support(device):
-                    self.chk_compile.SetValue(False)
+                # Bypass the check for torch.compile on ROCm7 by LC700X
+                # device = create_device(device_id)
+                # if not check_compile_support(device):
+                #     self.chk_compile.SetValue(False)
+                self.chk_compile.SetValue(True)
 
     def on_text_changed_cbo_language(self, event):
         lang = self.cbo_language.GetClientData(self.cbo_language.GetSelection())

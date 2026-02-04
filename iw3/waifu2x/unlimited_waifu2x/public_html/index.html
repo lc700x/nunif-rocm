@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta name="google" content="notranslate">
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, user-scalable=yes">
+    <link rel="icon" href="favicon.ico">
+    <title>unlimited:waifu2x</title>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.4.1/jquery.cookie.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0/dist/ort.min.js"></script>
+    <script src="script.js" charset="utf-8"></script>
+    <link href="style.css" rel="stylesheet" type="text/css">
+  </head>
+  <body>
+    <h1>unlimited:waifu2x</h1>
+    <div id="main-panel">
+      <div id="src-box">
+        <img id="src" src="blank.png">
+      </div>
+      <form id="form-box">
+        <table>
+          <tr>
+            <td>File (D&amp;D<span id="paste-button"></span>)</td>
+            <td>
+              <input type="file" id="file" name="file" accept="image/*">
+            </td>
+          </tr>
+          <tr>
+            <td>Model</td>
+            <td>
+              <select name="model">
+                <option value="swin_unet.art" selected>🎨 swin_unet / art</option>
+                <option value="swin_unet.art_scan" selected>🖨 swin_unet / art scan</option>
+                <option value="swin_unet.photo">📷 swin_unet / photo</option>
+                <option value="cunet.art">🎨 cunet / art (201811)</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td>DeNoise</td>
+            <td>
+              <select name="noise_level">
+                <option value="-1">(-) None</option>
+                <option value="0" selected>(0) Low</option>
+                <option value="1">(1) Medium</option>
+                <option value="2">(2) High</option>
+                <option value="3">(3) Highest</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td>Upscaling</td>
+            <td>
+              <select name="scale">
+                <option value="1">1x</option>
+                <option value="2" selected>2x</option>
+                <option value="4">4x</option>
+              </select>
+              <span id="scale-comment" class="comment">no 4x support</span>
+            </td>
+          </tr>
+          <tr>
+            <td>Tile</td>
+            <td>
+              <div>
+                <select name="tile_size">
+                  <option value="64" selected>64</option>
+                  <option value="256">256</option>
+                  <option value="400">400</option>
+                  <option value="640">640</option>
+                </select>
+                <label>
+                  <input type="checkbox" name="tile_random">
+                  Shuffle
+                </label>
+              </div>
+              <span id="tile-comment" class="comment">256 is recommended</span>
+            </td>
+          </tr>
+          <tr>
+            <td>TTA</td>
+            <td>
+              <select name="tta">
+                <option value="0" selected>0</option>
+                <option value="2">2</option>
+                <option value="4">4</option>
+              </select>
+              Ensemble
+            </td>
+          </tr>
+          <tr>
+            <td>Alpha Channel</td>
+            <td>
+              <select name="alpha">
+                <option value="1">Auto</option>
+                <option value="0" selected>Disable</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td colspan="2">
+              <div id="button-box">
+                <input type="button" id="start" value="Start">
+                <input type="button" id="stop" value="Stop">
+              </div>
+            </td>
+          </tr>
+        </table>
+      </form>
+      <div id="message">
+        ( ・∀・)
+      </div>
+      <div id="dest-box">
+        <canvas id="dest"></canvas>
+      </div>
+    </div>
+    <div id="footer">
+      Powered by <a href="https://github.com/nagadomi/nunif">nunif/waifu2x</a>, <a href="https://waifu2x.udp.jp/">waifu2x.udp.jp</a>
+    </div>
+  </body>
+</html>
