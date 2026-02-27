@@ -1,3 +1,19 @@
+**# iw3_Optimized Version by LC700X**
+## System Dependencies and Deployment
+
+1. Double-click and run **enable_long_path.reg** in the folder
+2. Download and install: [https://aka.ms/vc14/vc_redist.x64.exe](https://aka.ms/vc14/vc_redist.x64.exe)
+3. For NVIDIA GPUs: install the NVIDIA driver (recommended version: 591.86)
+   For AMD GPUs: install the AMD graphics driver (recommended version: 26.2.2 or 25.9.2)
+4. NVIDIA GPUs: run **Installer for Cuda Windows_standalone.bat** to deploy the environment
+   AMD GPUs: run **Installer for ROCm7 Windows_standalone.bat** to deploy the environment
+   *(Note: The AMD deployment version supports most RDNA GPUs in the RX5000–9000 series; the “lazy” version only supports 7700/7900/AI Max/9000 series.)*
+5. To launch IW3, run:
+
+   * **RUN iw3 Desktop GUI.bat** (real-time desktop [☑️GPU JPEG]), or
+   * **RUN iw3 GUI.bat** (video conversion)
+
+-----------------------------------------------------
 My playground.
 
 For the time being, I will make incompatible changes.
