@@ -3,9 +3,9 @@
 ## 系统依赖及部署运行
 1. 双击运行文件夹中的enable_long_path.reg
 2. 下载https://aka.ms/vc14/vc_redist.x64.exe并安装
-3. AMD显卡驱动 （推荐26.2.2或25.9.2版本）
-4. 运行Installer for ROCm7 Windows_standalone.bat部署环境
-6. 启动IW3请运行run_desktop_amd.bat（实时桌面 [☑️GPU JPEG]）或 run_amd.bat（视频转换）
+3. N卡安装NVIDIA驱动（推荐591.86版本）；A卡安装AMD显卡驱动 （推荐26.2.2或25.9.2版本）
+4. N卡运行Installer for Cuda Windows_standalone.bat部署环境；A卡运行Installer for ROCm7 Windows_standalone.bat部署环境（注意：AMD部署版支持多数RDNA显卡RX5000-9000系列，懒人版仅支持7700/7900/AI Max/9000系列）
+6. 启动IW3请运行RUN iw3 Desktop GUI.bat（实时桌面 [☑️GPU JPEG]）或 RUN iw3 GUI.bat（视频转换）
 
 ## 模型安装说明
 推荐Any_V2_N系列模型，懒人版已经自带:
@@ -20,9 +20,11 @@ Any_V2_N_S
 
 ## 附：对比原版的修改  
 - IW3 Desktop的60FPS, 2K/4K输出选项  
-- 解决ROCm7平台上IW3 Desktop实时3D中的encode_jpeg报错
+- 解决AMD ROCm7平台上IW3 Desktop实时3D中的encode_jpeg报错
+- 默认为N卡/A卡开启基于triton的torch.compile支持
 - 启用Flash-Attention和TF32   
 - 抗锯齿支持更多Depth-Anything系列模型  
+- 专门为RDNA3/4显卡开启CuDNN加速
 - 个人推荐的运行参数
 
 
