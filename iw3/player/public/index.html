@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="description" content="WebXR Stereo Image and Video Viewer">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>iw3-player</title>
+    
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    
+    <style>
+        body {
+            margin: 0;
+            background-color: #000;
+            color: #fff;
+            font-family: sans-serif;
+            overflow: hidden;
+            touch-action: none;
+        }
+    </style>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "/lib/vendor.bundle.js",
+            "three/examples/jsm/webxr/VRButton.js": "/lib/vendor.bundle.js",
+            "three/examples/jsm/webxr/XRControllerModelFactory.js": "/lib/vendor.bundle.js",
+            "@pmndrs/uikit": "/lib/vendor.bundle.js",
+            "@pmndrs/pointer-events": "/lib/vendor.bundle.js"
+        }
+    }
+    </script>
+</head>
+<body>
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>

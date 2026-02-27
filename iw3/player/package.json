@@ -1,0 +1,30 @@
+{
+  "name": "iw3-player",
+  "version": "1.0.0",
+  "description": "WebXR Image/Video Player",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "setup-draco": "mkdir -p public/lib/draco && cp -r node_modules/three/examples/jsm/libs/draco/* public/lib/draco/",
+    "build": "npm run setup-draco && esbuild src/vendor.js --bundle --outfile=public/lib/vendor.bundle.js --format=esm --minify --define:DEBUG_MODE=false",
+    "dev": "npm run setup-draco && esbuild src/vendor.js --bundle --outfile=public/lib/vendor.bundle.js --format=esm --sourcemap --define:DEBUG_MODE=true",
+    "watch": "esbuild src/vendor.js --bundle --outfile=public/lib/vendor.bundle.js --format=esm --watch --sourcemap --define:DEBUG_MODE=true",
+    "lint": "eslint public/js/",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@pmndrs/pointer-events": "^6.6.29",
+    "@pmndrs/uikit": "^1.0.61",
+    "msdf-bmfont-xml": "^2.8.0",
+    "three": "^0.182.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "esbuild": "^0.27.2",
+    "eslint": "^10.0.0",
+    "globals": "^17.3.0"
+  }
+}

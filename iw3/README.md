@@ -185,6 +185,11 @@ Tone mapping will be applied when the source video is HDR.
 
 I have tested the results with the following software.
 
+### iw3-player
+
+[iw3-player](player/README.md) is a self-hosted, specialized viewing environment for stereoscopic media.  
+If you are using Meta Quest and iw3, you should probably use this.
+
 ### Pigasus VR Media Player
 
 Pigasus works perfectly for SBS 3D videos, images, and Samba drive(SMB).
@@ -618,4 +623,5 @@ If you already downloaded the model files (checkpoint filess), downloading model
 
 ## Sub Project
 
-[iw3-desktop](docs/desktop.md) is a tool that converts your PC desktop screen into 3D in realtime and streaming over WiFi.
+- [iw3-desktop](docs/desktop.md) is a tool that converts your PC desktop screen into 3D in realtime and streaming over WiFi.
+- [iw3-player](player/README.md) is a self-hosted, specialized viewing environment for stereoscopic media.

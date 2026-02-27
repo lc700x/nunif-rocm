@@ -75,7 +75,7 @@ AA_SUPPORTED_MODELS = {
   "Any_V2_B",
   "Any_V2_L",
   "Any_V2_N",
-  "Any_V2_K"
+  "Any_V2_K",
   "Any_V2_N_S",
   "Any_V2_N_B",
   "Any_V2_N_L",

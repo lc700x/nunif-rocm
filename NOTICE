@@ -94,5 +94,12 @@ nunif/utils/u2netp.py: U2NETP
 From U2-Net https://github.com/xuebinqin/U-2-Net
 Xuebin Qin / Apache License, Version 2.0
 
+---
+iw3/player includes a modified version of Tabler Icons
+https://github.com/tabler/tabler-icons
+Paweł Kun / MIT License
+
+Other license files are included in each asset directory.
+
 ----
 Other libraries used are listed in `requirements.txt`.

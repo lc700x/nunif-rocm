@@ -13,7 +13,6 @@ tmp
 *.tar
 *.zip
 *.xcf
-/python
 /data
 !/data/.keep
 /models
@@ -42,12 +41,25 @@ tmp
 /windows_package/nunif
 /iw3/pretrained_models/hub
 /iw3/pretrained_models/rembg
-/stlizer/pretrained_models/hub
-.python-version
+/iw3/inpaint_models.yml
 
+/iw3/player/public/lib
+/iw3/player/public/environments
+/iw3/player/public/lut
+/iw3/player/public/fonts
+/iw3/player/example
+/iw3/player/package-lock.json
+/iw3/player/node_modules
+/iw3/player/version
+/iw3/player/sync_dev_repo.sh
+
+/stlizer/pretrained_models/hub
 /cliqa/pretrained_models
 
 # ----- Python.gitignore
+
+.ruff_cache
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -131,11 +143,11 @@ target/
 # IPython
 profile_default/
 ipython_config.py
-python*
+
 # pyenv
 #   For a library or package, you might want to ignore these files since the code is
 #   intended to run in multiple environments; otherwise, check them in:
-# .python-version
+.python-version
 
 # pipenv
 #   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
@@ -208,5 +220,4 @@ cython_debug/
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
-
-rocm*
+python

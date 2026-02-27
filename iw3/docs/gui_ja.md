@@ -622,4 +622,5 @@ NVIDIA Driver 570 以降をインストールしてください。
 
 ## サブプロジェクト
 
-[iw3-desktop](desktop_ja.md) はPCのデスクトップ画面を3D変換してWiFi経由でストリーミング配信するツールです。
+- [iw3-desktop](desktop_ja.md) はPCのデスクトップ画面を3D変換してWiFi経由でストリーミング配信するツールです。
+- [iw3-player](../player/README_ja.md) はセルフホストのステレオメディア再生環境です。WebXRのプレイヤーです。

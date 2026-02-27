@@ -1,4 +1,4 @@
-import requests
+import urllib
 import shutil
 import os
 from tqdm import tqdm
@@ -20,34 +20,36 @@ class Downloader(ABC):
         self.format = format
 
     def run(self, block_size=2 * 1024 * 1024, show_progress=True):
-        response = requests.get(self.url, allow_redirects=True, stream=True)
-        # TODO: total_size == 0
-        total_size = int(response.headers.get("Content-Length", 0))
-        # TOTO: rfc6266
-        if response.url != self.url:
-            self.url = response.url
-
-        logger.debug(f"Downloader: {self.name}: url={self.url}, size={total_size}")
         tmp = None
         try:
-            with NamedTemporaryFile(prefix="nunif-", delete=False) as tmp:
-                progress_bar = tqdm(desc=self.name, total=total_size, unit='iB', unit_scale=True,
-                                    ncols=80, disable=not show_progress)
-                for data in response.iter_content(block_size):
-                    tmp.write(data)
-                    progress_bar.update(len(data))
-                progress_bar.close()
-            if self.archive:
-                tmp_dir = mkdtemp(prefix="nunif-")
-                try:
-                    options = {} if self.format is None else {"format": self.format}
-                    shutil.unpack_archive(filename=tmp.name, extract_dir=tmp_dir, **options)
-                    self.handle_directory(tmp_dir)
-                finally:
-                    if self.delete_tmp:
-                        shutil.rmtree(tmp_dir, ignore_errors=True)
-            else:
-                self.handle_file(src=tmp.name, file=tmp)
+            with urllib.request.urlopen(self.url) as response:
+                if response.geturl() != self.url:
+                    self.url = response.geturl()
+                total_size = int(response.getheader("Content-Length", 0))
+                logger.debug(f"Downloader: {self.name}: url={self.url}, size={total_size}")
+
+                with NamedTemporaryFile(prefix="nunif-", delete=False) as tmp:
+                    progress_bar = tqdm(desc=self.name, total=total_size, unit='iB', unit_scale=True,
+                                        ncols=80, disable=not show_progress)
+                    while True:
+                        chunk = response.read(block_size)
+                        if not chunk:
+                            break
+                        tmp.write(chunk)
+                        progress_bar.update(len(chunk))
+                    progress_bar.close()
+
+                if self.archive:
+                    tmp_dir = mkdtemp(prefix="nunif-")
+                    try:
+                        options = {} if self.format is None else {"format": self.format}
+                        shutil.unpack_archive(filename=tmp.name, extract_dir=tmp_dir, **options)
+                        self.handle_directory(tmp_dir)
+                    finally:
+                        if self.delete_tmp:
+                            shutil.rmtree(tmp_dir, ignore_errors=True)
+                else:
+                    self.handle_file(src=tmp.name, file=tmp)
         finally:
             if self.delete_tmp:
                 if tmp is not None:
