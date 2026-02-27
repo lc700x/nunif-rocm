@@ -18,7 +18,24 @@ import torch
 # Add for AMD ROCm7 by LC700X
 if torch.cuda.is_available():
     DEVICE_INFO = torch.cuda.get_device_name(0)
-
+    if "AMD" in DEVICE_INFO:
+        # Disable CuDNN for RX 6000 and 5000 series GPUs
+        DISABLE_CUDNN_KEYWORDS = ["6950", "6900", "6850", "6800", "6750", "6700", "6650", "6600", "6550", "6500", "6400", "6300", "680", "6100", "5700", "5600", "5500", "5400", "5300", "520", "160"]
+        # Disable Triton for RX 5000 series
+        DISABLE_TRITON_KEYWORDS = ["5700", "5600", "5500", "5400", "5300", "520", "160"]
+        for gpu_id in DISABLE_CUDNN_KEYWORDS:
+            if gpu_id in DEVICE_INFO:
+                torch.backends.cudnn.enabled = False  # Disable cuDNN for known problematic AMD RX6000 GPUs
+                print(f"[Main] Disabled cuDNN for {DEVICE_INFO}. ")
+                break
+        # disable trition for RX5000 series and older AMD GPUs
+        is_legacy_amd = any(gpu_id in DEVICE_INFO for gpu_id in DISABLE_TRITON_KEYWORDS)   
+        if is_legacy_amd:
+            print(f"[Main] Disabled torch.compile for {DEVICE_INFO}. ")
+        else:
+            os.environ["FLASH_ATTENTION_TRITON_AMD_ENABLE"] = "TRUE" # Enable flash attention for AMD ROCm
+            os.environ["FLASH_ATTENTION_TRITON_AMD_AUTOTUNE"] = "TRUE" # Enable flash attention autotune for AMD ROCm
+        os.environ["TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL"] = "1" # Enable AOTriton for ROCm
     # Set cudnn benchmark for performance
     torch.backends.cudnn.benchmark = True
     os.environ["TORCHINDUCTOR_MAX_AUTOTUNE"] ="1"
@@ -34,11 +51,7 @@ if torch.cuda.is_available():
         torch.backends.cuda.enable_math_sdp(True)
     except Exception:
         pass
-    
-    if "AMD" in DEVICE_INFO:
-        os.environ["TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL"] = "1" # Enable AOTriton for ROCm
-        os.environ["FLASH_ATTENTION_TRITON_AMD_ENABLE"] = "TRUE" # Enable flash attention for AMD ROCm
-        os.environ["FLASH_ATTENTION_TRITON_AMD_AUTOTUNE"] = "TRUE" # Enable flash attention autotune for AMD ROCm
+
 from nunif.utils.git import get_current_branch
 from nunif.initializer import gc_collect
 from nunif.device import mps_is_available, xpu_is_available, create_device

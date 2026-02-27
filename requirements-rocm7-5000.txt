@@ -1,5 +1,5 @@
-﻿# AMD Ryze AI 890M 880M (Strix Point)
---index-url https://rocm.nightlies.amd.com/v2/gfx1150/ --pre
+﻿# AMD Radeon RX 6000 Series Graphics Cards (GFX101X)
+--index-url https://rocm.nightlies.amd.com/v2-staging/gfx101X-dgpu/ --pre
 torch==2.11.0a0+rocm7.12.0a20260226
 torchvision==0.25.0a0+rocm7.12.0a20260226
 # torchaudio==2.11.0a0+rocm7.12.0a20260226

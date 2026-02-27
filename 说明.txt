@@ -3,9 +3,8 @@
 ## 系统依赖及部署运行
 1. 双击运行文件夹中的enable_long_path.reg
 2. 下载https://aka.ms/vc14/vc_redist.x64.exe并安装
-3. AMD显卡驱动 （推荐25.12.1或25.9.2版本）
-4. 若为RX6000 (RDNA2) GPU, 请先把网盘的整个rocm6000文件夹覆盖到根目录 （如RX6000里已经有whl文件 或 RX9000/7000，请跳过直接进入步骤5）
-5. 运行Installer for ROCm7 Windows_standalone.bat部署环境
+3. AMD显卡驱动 （推荐26.1.1或25.9.2版本）
+4. 运行Installer for ROCm7 Windows_standalone.bat部署环境
 6. 启动IW3请运行run_desktop_amd.bat（实时桌面 [☑️GPU JPEG]）或 run_amd.bat（视频转换）
 
 ## 模型安装说明
