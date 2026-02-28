@@ -1,0 +1,98 @@
+----
+nunif/optim/lion.py
+From Google Brain AutoML: https://github.com/google/automl/blob/master/lion/lion_pytorch.py
+Google Research / Apache License, Version 2.0
+
+----
+nunif/training/weight_decay_config.py
+From nanoGPT: https://github.com/karpathy/nanoGPT/blob/master/model.py
+Andrej Karpathy / MIT License
+
+----
+nunif/waifu2x/docs/images/miku_128.png
+Hatsune Miku / Crypton Future Media inc. / CC BY-NC
+https://piapro.net/intl/en_for_creators.html
+
+----
+nunif/utils/perlin2d.py
+The original code is perlin-numpy: https://github.com/pvigier/perlin-numpy
+Pierre Vigier / MIT License
+Vadim Kantorov ported to pytorch: https://gist.github.com/vadimkantorov/ac1b097753f217c5c11bc2ff396e0a57
+
+----
+nunif/training/env.py
+The adaptive weight calculation for the two different losses(GAN and others) is from Taming Transformers.
+https://github.com/CompVis/taming-transformers
+
+----
+nunif/module/_lpips_1.pth
+nunif/module/_lpips_2.pth
+are trained with the private forked version of LPIPS.
+https://github.com/richzhang/PerceptualSimilarity
+
+---
+nunif/modules/fourier_unit.py
+Modified from LaMa https://github.com/advimman/lama/blob/main/saicinpainting/training/modules/ffc.py
+Samsung Research / Apache License Version 2.0
+Original implementation Fast Fourier Convolution https://github.com/pkumivision/FFC/blob/main/model_zoo/ffc.py
+Lu Chi / Apache License Version 2.0
+
+---
+iw3 uses forked version of ZoeDepth and MiDaS as its core logic
+https://github.com/isl-org/MiDaS
+https://github.com/isl-org/ZoeDepth
+Intelligent Systems Lab Org / MIT License
+
+---
+iw3 uses forked version of Depth-Anything
+https://github.com/LiheYoung/Depth-Anything
+Lihe Yang / Apache License Version 2.0
+
+---
+iw3.cli and training code(synthetic data) uses forked version of Depth Pro
+https://github.com/apple/ml-depth-pro
+Apple Inc. / https://github.com/apple/ml-depth-pro/blob/main/LICENSE
+
+---
+nunif/modules/lpips.py
+`normalize_tensor` fix is adapted from NormFixLPIPS of NeuralCompression
+https://github.com/facebookresearch/NeuralCompression
+Meta Platforms, Inc. and affiliates / MIT License
+
+---
+nunif/utils/superpoint.py
+From SuperPoint https://github.com/rpautrat/SuperPoint/
+Paul-Edouard Sarlin & Rémi Pautrat / MIT License
+
+---
+nunif/modules/norm.py: FastLayerNorm
+From timm https://github.com/huggingface/pytorch-image-models
+Ross Wightman / Apache License Version 2.0
+
+---
+nunif/utils/transnetv2.py
+From TransNetV2 https://github.com/soCzech/TransNetV2
+Tomáš Souček / MIT License
+
+---
+iw3 can load Distill Any Depth checkpoints
+https://github.com/Westlake-AGI-Lab/Distill-Any-Depth
+AGI Lab, Westlake University / Apache License Version 2.0
+
+---
+iw3 uses forked version of Video-Depth-Anything
+https://github.com/DepthAnything/Video-Depth-Anything
+DepthAnything / Apache License 2.0
+
+---
+iw3 uses forked version of Depth-Anything-3
+https://github.com/ByteDance-Seed/Depth-Anything-3
+ByteDance Ltd. and/or its affiliates / Apache License 2.0
+
+--
+nunif/utils/u2netp.py: U2NETP
+From U2-Net https://github.com/xuebinqin/U-2-Net
+Xuebin Qin / Apache License, Version 2.0
+
+----
+Other libraries used are listed in `requirements.txt`.

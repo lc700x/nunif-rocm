@@ -10,51 +10,55 @@ from collections import deque
 import wx  # for mouse pointer
 from packaging.version import Version
 import torch
-# from torchvision.io import encode_jpeg
+from torchvision.io import encode_jpeg
 # add encode_jpeg function for ROCm7 by LC700X
-import numpy as np
-from PIL import Image
-from io import BytesIO
-def encode_jpeg(input: torch.Tensor, quality: int = 75) -> torch.Tensor:
-    """
-    Encodes a uint8 tensor to JPEG bytes without warnings, matching torchvision.io.encode_jpeg
-    
-    Args:
-        input (torch.Tensor): Input tensor of shape (H, W, 3) or (3, H, W) with dtype uint8
-        quality (int, optional): Quality factor between 1-100. Default: 75
-    
-    Returns:
-        torch.Tensor: A uint8 tensor containing the JPEG bytes
-    """
-    # Input validation identical to torchvision
-    if input.dim() not in (3, 4):
-        raise ValueError(f"Expected input tensor to have 3 or 4 dimensions, but got {input.dim()}")
-    
-    if input.dtype != torch.uint8:
-        raise ValueError(f"Expected input tensor to have dtype uint8, but got {input.dtype}")
-    
-    # Convert to HWC format if needed
-    if input.dim() == 3 and input.size(0) == 3:
-        input = input.permute(1, 2, 0)
-    
-    # Convert to numpy array (handles both CPU and CUDA tensors)
-    arr = input.cpu().numpy()
-    
-    # Ensure writable contiguous array
-    if not arr.flags['WRITEABLE'] or not arr.flags['C_CONTIGUOUS']:
-        arr = np.array(arr, copy=True)
-    
-    # Convert to PIL Image
-    img_pil = Image.fromarray(arr)
-    
-    # Encode to JPEG
-    buf = BytesIO()
-    img_pil.save(buf, format="JPEG", quality=quality,
-                 subsampling=0 if quality >= 90 else 2)
-    
-    # Get bytes and convert to writable tensor
-    jpeg_bytes = buf.getvalue()
-    return torch.tensor(np.frombuffer(jpeg_bytes, dtype=np.uint8), dtype=torch.uint8)
+if torch.cuda.is_available():
+    DEVICE_NAME = torch.cuda.get_device_name(torch.cuda.current_device())
+    if "AMD" in DEVICE_NAME:
+        import numpy as np
+        from PIL import Image
+        from io import BytesIO
+        def encode_jpeg(input: torch.Tensor, quality: int = 75) -> torch.Tensor:
+            """
+            Encodes a uint8 tensor to JPEG bytes without warnings, matching torchvision.io.encode_jpeg
+            
+            Args:
+                input (torch.Tensor): Input tensor of shape (H, W, 3) or (3, H, W) with dtype uint8
+                quality (int, optional): Quality factor between 1-100. Default: 75
+            
+            Returns:
+                torch.Tensor: A uint8 tensor containing the JPEG bytes
+            """
+            # Input validation identical to torchvision
+            if input.dim() not in (3, 4):
+                raise ValueError(f"Expected input tensor to have 3 or 4 dimensions, but got {input.dim()}")
+            
+            if input.dtype != torch.uint8:
+                raise ValueError(f"Expected input tensor to have dtype uint8, but got {input.dtype}")
+            
+            # Convert to HWC format if needed
+            if input.dim() == 3 and input.size(0) == 3:
+                input = input.permute(1, 2, 0)
+            
+            # Convert to numpy array (handles both CPU and CUDA tensors)
+            arr = input.cpu().numpy()
+            
+            # Ensure writable contiguous array
+            if not arr.flags['WRITEABLE'] or not arr.flags['C_CONTIGUOUS']:
+                arr = np.array(arr, copy=True)
+            
+            # Convert to PIL Image
+            img_pil = Image.fromarray(arr)
+            
+            # Encode to JPEG
+            buf = BytesIO()
+            img_pil.save(buf, format="JPEG", quality=quality,
+                        subsampling=0 if quality >= 90 else 2)
+            
+            # Get bytes and convert to writable tensor
+            jpeg_bytes = buf.getvalue()
+            return torch.tensor(np.frombuffer(jpeg_bytes, dtype=np.uint8), dtype=torch.uint8)
+        
 from nunif.device import create_device
 from nunif.models import compile_model
 from nunif.models.data_parallel import DeviceSwitchInference
@@ -63,6 +67,7 @@ from .. import utils as IW3U
 from ..stereo_model_factory import get_mlbw_divergence_level
 from .. import models  # noqa
 from .screenshot_thread_pil import ScreenshotThreadPIL
+from .screenshot_thread_cuda import ScreenshotThreadWCCUDA
 from .screenshot_process import ( # noqa
     ScreenshotProcess,
     get_monitor_size_list,
@@ -188,10 +193,12 @@ def create_parser():
     parser.add_argument("--user", type=str, help="HTTP Basic Authentication username")
     parser.add_argument("--password", type=str, help="HTTP Basic Authentication password")
     parser.add_argument("--stream-fps", type=int, default=30, help="Streaming FPS")
+    parser.add_argument("--uncap-fps", action="store_true",
+                        help="Allows LocalViewer to render at frame rates beyond the display's refresh rate")
     parser.add_argument("--stream-height", type=int, default=1080, help="Streaming screen resolution")
     parser.add_argument("--stream-quality", type=int, default=90, help="Streaming JPEG quality")
     parser.add_argument("--full-sbs", action="store_true", help="Use Full SBS for Pico4")
-    parser.add_argument("--screenshot", type=str, default="pil", choices=["pil", "mss", "wc_mp"],
+    parser.add_argument("--screenshot", type=str, default="pil", choices=["pil", "mss", "wc_mp", "wc_cuda"],
                         help="Screenshot method")
     parser.add_argument("--gpu-jpeg", action="store_true", help="Use GPU JPEG Encoder")
     parser.add_argument("--monitor-index", type=int, default=0, help="monitor_index for wc_mp. 0 origin. 0 = monitor 1")
@@ -262,7 +269,8 @@ def try_switch_mlbw_model(old_divergence, new_divergence, old_side_model, args):
 def iw3_desktop_main(args, init_wxapp=True):
     init_num_threads(args.gpu[0])
 
-    if not (args.full_sbs or args.rgbd or args.half_rgbd):
+    if not any([args.full_sbs, args.tb, args.half_tb,
+                args.cross_eyed, args.rgbd, args.half_rgbd, args.anaglyph]):
         args.half_sbs = True
 
     if args.user or args.password:
@@ -297,15 +305,20 @@ def iw3_desktop_main(args, init_wxapp=True):
         screenshot_factory = lambda *args, **kwargs: ScreenshotProcess(*args, **kwargs, backend="mss")
     elif args.screenshot == "wc_mp":
         screenshot_factory = lambda *args, **kwargs: ScreenshotProcess(*args, **kwargs, backend="windows_capture")
+    elif args.screenshot == "wc_cuda":
+        screenshot_factory = lambda *args, **kwargs: ScreenshotThreadWCCUDA(*args, **kwargs)
 
     device = create_device(args.gpu)
 
     depth_model = args.state["depth_model"]
     if not depth_model.loaded():
-        depth_model.load(gpu=args.gpu, resolution=args.resolution)
+        depth_model.load(gpu=args.gpu, resolution=args.resolution, limit_resolution=args.limit_resolution)
 
     # Use Flicker Reduction to prevent 3D sickness
     depth_model.enable_ema(args.ema_decay, buffer_size=1)
+    if args.state["convergence_model"] is not None:
+        args.state["convergence_model"].reset(enable_ema=True, decay=0.98)
+
     args.mapper = IW3U.resolve_mapper_name(mapper=args.mapper, foreground_scale=args.foreground_scale,
                                            metric_depth=depth_model.is_metric())
 
@@ -370,7 +383,10 @@ def iw3_desktop_main(args, init_wxapp=True):
         # Local Viewer
         if LocalViewer is None:
             raise RuntimeError("Local Viewer is not available")
-        server = LocalViewer(lock=lock, width=output_frame_width, height=output_frame_height)
+        IS_ROCM = getattr(torch.version, "hip", None) is not None
+        USE_CUDA = torch.cuda.is_available() and not IS_ROCM
+        server = LocalViewer(lock=lock, width=output_frame_width, height=output_frame_height,
+                             use_cuda=USE_CUDA, uncap_fps=args.uncap_fps)
 
     screenshot_thread = screenshot_factory(
         fps=args.stream_fps,
@@ -408,6 +424,8 @@ def iw3_desktop_main(args, init_wxapp=True):
             with args.state["args_lock"]:
                 tick = time.perf_counter()
                 frame = screenshot_thread.get_frame()
+                if frame is None:
+                    break
                 sbs = IW3U.process_image(frame, args, depth_model, side_model, autocrop_uncrop=True)
 
                 if not args.local_viewer:

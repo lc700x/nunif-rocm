@@ -1,3 +1,19 @@
+**# iw3_Optimized Version by LC700X**
+## System Dependencies and Deployment
+
+1. Double-click and run **enable_long_path.reg** in the folder
+2. Download and install: [https://aka.ms/vc14/vc_redist.x64.exe](https://aka.ms/vc14/vc_redist.x64.exe)
+3. For NVIDIA GPUs: install the NVIDIA driver (recommended version: 591.86)
+   For AMD GPUs: install the AMD graphics driver (recommended version: 26.2.2 or 25.9.2)
+4. NVIDIA GPUs: run **Installer for Cuda Windows_standalone.bat** to deploy the environment
+   AMD GPUs: run **Installer for ROCm7 Windows_standalone.bat** to deploy the environment
+   *(Note: The AMD deployment version supports most RDNA GPUs in the RX5000–9000 series; the “lazy” version only supports 7700/7900/AI Max/9000 series.)*
+5. To launch IW3, run:
+
+   * **RUN iw3 Desktop GUI.bat** (real-time desktop [☑️GPU JPEG]), or
+   * **RUN iw3 GUI.bat** (video conversion)
+
+-----------------------------------------------------
 My playground.
 
 For the time being, I will make incompatible changes.
@@ -29,6 +45,13 @@ iw3 provides the ability to convert any 2D image/video into side-by-side 3D imag
 iw3.desktop is a tool that converts your PC desktop screen into 3D and streaming over WiFi.
 
 You can watch any image and video/live displayed on your PC as 3D in realtime.
+
+### iw3-player
+
+[iw3/player/README.md](./iw3/player/README.md)
+
+iw3-player is a self-hosted, specialized viewing environment for stereoscopic media.  
+It allows you to stream media that has been pre-converted to 3D with iw3 from your PC and enjoy it on VR devices through a WebXR application.
 
 ## stilizer
 
@@ -73,6 +96,8 @@ We usually support the latest version. If there are bugs or compatibility issues
 - [INSTALL-macos](INSTALL-macos.md)
 
 For Intel GPUs, additionally see section [INSTALL-xpu](INSTALL-xpu.md).
+
+For container, packages, or special hardware builds, see [extra_build](extra_build).
 
 #### About NUNIF_HOME
 

@@ -3,7 +3,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from .dilation import dilate_edge
+from .dilation import dilate_edge, edge_dilation_is_enabled
 from . base_depth_model import BaseDepthModel
 
 
@@ -39,7 +39,8 @@ class NullDepthModel(BaseDepthModel):
             x = (self.model(x) + self.model(x)) * 0.5
         else:
             x = self.model(x)
-        if edge_dilation > 0:
+
+        if edge_dilation_is_enabled(edge_dilation):
             x = dilate_edge(x, edge_dilation)
 
         if not batch:

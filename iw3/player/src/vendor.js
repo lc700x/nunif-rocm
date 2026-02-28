@@ -1,0 +1,10 @@
+export * from 'three';
+export * from '@pmndrs/uikit';
+export * from '@pmndrs/pointer-events';
+export { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
+export { XRControllerModelFactory } from 'three/examples/jsm/webxr/XRControllerModelFactory.js';
+export { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js';
+export { EXRLoader } from 'three/examples/jsm/loaders/EXRLoader.js';
+export { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+export { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
+export { LUTCubeLoader } from 'three/examples/jsm/loaders/LUTCubeLoader.js';

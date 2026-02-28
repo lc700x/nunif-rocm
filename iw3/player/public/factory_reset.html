@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>iw3-player - Factory Reset</title>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #111; color: #eee; margin: 0; }
+        .container { background: #222; padding: 40px; border-radius: 16px; border: 2px solid #444; text-align: center; max-width: 400px; }
+        h1 { color: #ff4444; margin-top: 0; }
+        button { background: #ff4444; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 18px; cursor: pointer; margin-top: 20px; font-weight: bold; }
+        button:hover { background: #cc0000; }
+        button:disabled { background: #666; cursor: not-allowed; }
+        .back { color: #1a73e8; text-decoration: none; margin-top: 20px; display: inline-block; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Factory Reset</h1>
+        <p>This will clear all saved settings in your browser AND the server-side thumbnail cache.</p>
+        <p><strong>This action cannot be undone.</strong></p>
+        <button id="resetBtn" onclick="reset()">Reset All Settings & Cache</button>
+        <div id="status" style="margin-top: 20px; color: #44ff44; font-weight: bold; min-height: 24px;"></div>
+        <br>
+        <a href="/" class="back">Back to Player</a>
+    </div>
+
+    <script type="module">
+        import { storage } from './js/storage.js';
+
+        async function reset() {
+            if (!confirm("Are you sure you want to reset all settings and clear the server cache?")) {
+                return;
+            }
+
+            const btn = document.getElementById('resetBtn');
+            const status = document.getElementById('status');
+            btn.disabled = true;
+            status.style.color = "#eee";
+            status.innerText = "Processing...";
+
+            try {
+                // 1. Clear IndexedDB and LocalStorage via StorageManager
+                await storage.clearAll();
+
+                // 2. Clear Server Cache via API
+                const response = await fetch('/api/cache/clear', { method: 'POST' });
+                
+                if (response.ok) {
+                    status.style.color = "#44ff44";
+                    status.innerText = "Reset completed successfully. Redirecting...";
+                } else {
+                    status.style.color = "#ffaa00";
+                    status.innerText = "Browser settings cleared, but server cache failed (Auth required?).";
+                }
+
+                setTimeout(() => {
+                    window.location.href = "/";
+                }, 2000);
+
+            } catch (e) {
+                console.error(e);
+                status.style.color = "#ff4444";
+                status.innerText = "An error occurred during reset.";
+                btn.disabled = false;
+            }
+        }
+
+        // Attach function to window so it can be called from onclick
+        window.reset = reset;
+    </script>
+</body>
+</html>
