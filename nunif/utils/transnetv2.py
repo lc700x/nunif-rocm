@@ -122,19 +122,25 @@ class StackedDDCNNV2(nn.Module):
     def forward(self, inputs):
         x = inputs
         shortcut = None
+        # FIX MIOOPEN error for ROCm
+        prev = torch.backends.cudnn.enabled
+        if torch.version.hip is not None: # check ROCm:
+            torch.backends.cudnn.enabled = False
+        try:
+            for block in self.DDCNN:
+                x = block(x)
+                if shortcut is None:
+                    shortcut = x
 
-        for block in self.DDCNN:
-            x = block(x)
-            if shortcut is None:
-                shortcut = x
+            x = functional.relu(x)
 
-        x = functional.relu(x)
-
-        if self.shortcut is not None:
-            if self.stochastic_depth_drop_prob != 0.:
-                x = (1 - self.stochastic_depth_drop_prob) * x + shortcut
-            else:
-                x += shortcut
+            if self.shortcut is not None:
+                if self.stochastic_depth_drop_prob != 0.:
+                    x = (1 - self.stochastic_depth_drop_prob) * x + shortcut
+                else:
+                    x += shortcut
+        finally:
+            torch.backends.cudnn.enabled = prev
 
         x = self.pool(x)
         return x
