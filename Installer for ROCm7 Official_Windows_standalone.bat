@@ -17,7 +17,7 @@ if %errorlevel% neq 0 (
   exit /b 1
 )
 %PYTHON_EXE% -m pip install -r requirements-rocm7-official.txt --no-cache-dir --no-warn-script-location
-%PYTHON_EXE% -m pip install "triton-windows<3.7" --no-cache-dir --no-warn-script-location -i https://repo.huaweicloud.com/repository/pypi/simple/ --trusted-host https://repo.huaweicloud.com/
+@REM %PYTHON_EXE% -m pip install "triton-windows<3.6" --no-cache-dir --no-warn-script-location -i https://repo.huaweicloud.com/repository/pypi/simple/ --trusted-host https://repo.huaweicloud.com/
 %PYTHON_EXE% -m pip install --no-warn-script-location --no-cache-dir -r requirements.txt -i https://repo.huaweicloud.com/repository/pypi/simple/ --trusted-host https://repo.huaweicloud.com/
 %PYTHON_EXE% -m pip install --no-warn-script-location --no-cache-dir -r requirements-gui.txt -i https://repo.huaweicloud.com/repository/pypi/simple/ --trusted-host https://repo.huaweicloud.com/
 @REM %PYTHON_EXE% -m waifu2x.download_models
