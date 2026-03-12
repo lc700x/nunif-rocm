@@ -16,7 +16,7 @@ if %errorlevel% neq 0 (
   pause
   exit /b 1
 )
-%PYTHON_EXE% -m pip install -r requirements-torch.txt --no-cache-dir --no-warn-script-location
+%PYTHON_EXE% -m pip install -r requirements-torch.txt --no-cache-dir --no-warn-script-location -i https://repo.huaweicloud.com/repository/pypi/simple/ --trusted-host https://repo.huaweicloud.com/
 %PYTHON_EXE% -m pip install "triton-windows<3.4" --no-cache-dir --no-warn-script-location -i https://repo.huaweicloud.com/repository/pypi/simple/ --trusted-host https://repo.huaweicloud.com/
 %PYTHON_EXE% -m pip install --no-warn-script-location --no-cache-dir -r requirements.txt -i https://repo.huaweicloud.com/repository/pypi/simple/ --trusted-host https://repo.huaweicloud.com/
 %PYTHON_EXE% -m pip install --no-warn-script-location --no-cache-dir -r requirements-gui.txt -i https://repo.huaweicloud.com/repository/pypi/simple/ --trusted-host https://repo.huaweicloud.com/
